@@ -1,5 +1,12 @@
 import React from 'react';
+import { supabase } from "../src/lib/supabase";
 import { Gavel, Shield, Ban, Zap, XCircle } from 'lucide-react';
+
+const { data } = supabase.storage
+  .from("docs")
+  .getPublicUrl("APRO National Safety Code (NSOC) v1.pdf");
+
+const safetyCodeUrl = data.publicUrl;
 
 const Legal: React.FC = () => {
   return (
@@ -73,9 +80,14 @@ const Legal: React.FC = () => {
               </div>
 
               <div className="text-center">
-                <button className="bg-apra-alert text-white font-bold py-3 px-8 rounded hover:bg-red-700 transition-colors uppercase text-sm">
-                  Download Full Safety Code (PDF)
-                </button>
+                <a
+                  href={safetyCodeUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block w-full text-center border-2 border-apra-alert text-apra-alert font-bold py-2 rounded hover:bg-apra-alert hover:text-white transition-colors text-sm uppercase"
+                >
+                Download PDF
+                </a>
               </div>
             </div>
           </div>
