@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { supabase } from "../src/lib/supabase";
+import bgHome from "../assets/bg-home.avif";
 import { GraduationCap, User, Rocket, Map, FileText, Shield } from 'lucide-react';
 
 const { data } = supabase.storage
@@ -16,7 +17,7 @@ const Home: React.FC = () => {
       <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
-            src="../assets/bg-home.avif" 
+            src={bgHome}
             alt="Rocket Launch" 
             className="w-full h-full object-cover brightness-50"
           />
