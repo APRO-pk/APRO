@@ -40,6 +40,7 @@ const StudentApplicationsPage: React.FC = () => {
   const [selectedApplication, setSelectedApplication] =
     useState<StudentApplication | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
+  const [actionError, setActionError] = useState("");
   const [activeTab, setActiveTab] = useState<TabStatus>("PENDING");
   const [counts, setCounts] = useState({
     ALL: 0,
@@ -184,39 +185,90 @@ const StudentApplicationsPage: React.FC = () => {
   newStatus: "APPROVED" | "REJECTED" | "PENDING"
   ) => {
     setActionLoadingId(applicationId);
+    setActionError("");
 
     try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setActionError("Your admin session has expired. Please sign in again.");
+        navigate("/admin/login");
+        return;
+      }
+
+      const { data: adminRow, error: adminError } = await supabase
+        .from("admins")
+        .select("id")
+        .eq("auth_id", session.user.id)
+        .single();
+
+      if (adminError || !adminRow) {
+        console.error("Admin validation failed before update:", adminError);
+        await supabase.auth.signOut();
+        setActionError("You are not authorized to update applications.");
+        navigate("/admin/login");
+        return;
+      }
+
       const targetApp = applications.find((app) => app.id === applicationId);
 
       if (!targetApp) {
         console.error("Application not found in local state.");
+        setActionError("The selected application could not be found.");
         return;
       }
 
       if (!targetApp.member_id) {
         console.error("This application is not linked to a member.");
+        setActionError("This application is not linked to a member record.");
         return;
       }
 
       // 1) Update application status
-      const { error: applicationError } = await supabase
+      const { data: updatedApplications, error: applicationError } = await supabase
         .from("applications")
         .update({ status: newStatus })
-        .eq("id", applicationId);
+        .eq("id", applicationId)
+        .select("id, status, member_id");
 
       if (applicationError) {
         console.error("Error updating application:", applicationError);
+        setActionError(applicationError.message);
+        return;
+      }
+
+      if (!updatedApplications || updatedApplications.length === 0) {
+        console.error("Application update returned no rows. This usually means RLS blocked the update.", {
+          applicationId,
+          newStatus,
+          sessionUserId: session.user.id,
+        });
+        setActionError("Application status was not updated. This is likely being blocked by a Supabase RLS policy.");
         return;
       }
 
       // 2) Update linked member account status
-      const { error: memberError } = await supabase
+      const { data: updatedMembers, error: memberError } = await supabase
         .from("members")
         .update({ account_status: newStatus })
-        .eq("id", targetApp.member_id);
+        .eq("id", targetApp.member_id)
+        .select("id, account_status");
 
       if (memberError) {
         console.error("Error updating member account status:", memberError);
+        setActionError(memberError.message);
+        return;
+      }
+
+      if (!updatedMembers || updatedMembers.length === 0) {
+        console.error("Member update returned no rows. This usually means RLS blocked the update.", {
+          memberId: targetApp.member_id,
+          newStatus,
+          sessionUserId: session.user.id,
+        });
+        setActionError("Member account status was not updated. This is likely being blocked by a Supabase RLS policy.");
         return;
       }
 
@@ -231,6 +283,7 @@ const StudentApplicationsPage: React.FC = () => {
       await fetchApplications(activeTab);
     }catch (err) {
     console.error("Unexpected update error:", err);
+    setActionError(err instanceof Error ? err.message : "Unexpected update error.");
     } finally {
     setActionLoadingId(null);
     }
@@ -313,6 +366,12 @@ const StudentApplicationsPage: React.FC = () => {
           </div>
 
           <div className="p-6">
+            {actionError ? (
+              <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {actionError}
+              </div>
+            ) : null}
+
             {loading ? (
               <div className="bg-white border border-gray-200 rounded-lg p-6 text-gray-600">
                 Loading student applications...
