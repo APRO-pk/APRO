@@ -27,7 +27,7 @@ const About: React.FC = () => {
             <div className="lg:w-1/2">
               <h2 className="text-3xl font-bold font-heading mb-6 border-l-4 border-apra-blue pl-4">Our History</h2>
               <p className="text-gray-300 leading-relaxed mb-6">
-                There was a time when Pakistani students found no defined path to practical rocketry. While curiosity existed, the infrastructure did not. APRA was born from a refusal to wait. It began as a specialized technical branch known as RPS (Rocket Propulsion Systems) within a university space society. This small group of engineers focused on understanding the physics of flight even when launch permissions were unavailable, operating under the philosophy that "if rockets could not fly, they would still be understood".
+                There was a time when Pakistani students found no defined path to practical rocketry. While curiosity existed, the infrastructure did not. APRO was born from a refusal to wait. It began as a specialized technical branch known as RPS (Rocket Propulsion Systems) within a university space society. This small group of engineers focused on understanding the physics of flight even when launch permissions were unavailable, operating under the philosophy that "if rockets could not fly, they would still be understood".
               </p>
             </div>
             
@@ -102,7 +102,7 @@ const About: React.FC = () => {
               </div>
               <h3 className="text-xl font-bold mb-4">Regulatory & Safety Standards</h3>
               <p className="text-gray-600 text-sm leading-relaxed">
-                Recognizing that early "flight was illegal", APRA is dedicated to legalizing and standardizing amateur rocketry. We are building the safety codes and responsibility frameworks required to open up Pakistan's airspace.
+                Recognizing that early "flight was illegal", APRO is dedicated to legalizing and standardizing amateur rocketry. We are building the safety codes and responsibility frameworks required to open up Pakistan's airspace.
               </p>
             </div>
           </div>
@@ -114,7 +114,7 @@ const About: React.FC = () => {
         <div className="container mx-auto px-4 text-center pt-12">
           <h2 className="text-2xl font-bold font-heading mb-4 text-apra-blue">Our Mission</h2>
           <p className="max-w-4xl mx-auto text-lg text-gray-300 italic">
-            "We invite the 'space citizens of Pakistan' to join us. APRA was formed not for immediate glory, but to 'prepare patiently'. We are here to help your skies learn to answer back."
+            "We invite the 'space citizens of Pakistan' to join us. APRO was formed not for immediate glory, but to 'prepare patiently'. We are here to help your skies learn to answer back."
           </p>
         </div>
       </section>
