@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { supabase } from "../src/lib/supabase";
+import type { Session } from "@supabase/supabase-js";
 
 const inputBase =
   "w-full px-4 py-2 border border-gray-300 rounded " +
@@ -29,6 +30,35 @@ const StudentApplication: React.FC = () => {
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+  const [authSession, setAuthSession] = useState<Session | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    void supabase.auth.getSession().then(({ data, error }) => {
+      if (error) {
+        console.error("[StudentApplication] Failed to load initial session", error);
+        return;
+      }
+
+      if (mounted) {
+        setAuthSession(data.session ?? null);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (mounted) {
+        setAuthSession(session);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -52,6 +82,57 @@ const StudentApplication: React.FC = () => {
 
   const resetForm = () => {
     setFormData(initialFormData);
+  };
+
+  const ensureAuthenticatedSession = async () => {
+    const currentSession = authSession ?? (await supabase.auth.getSession()).data.session;
+    if (currentSession) {
+      return currentSession;
+    }
+
+    console.info("[StudentApplication] No session found. Creating auth account before application insert.");
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          full_name: formData.fullName,
+          member_type: "STUDENT",
+        },
+      },
+    });
+
+    if (authError) {
+      console.error("[StudentApplication] signUp failed", authError);
+      throw authError;
+    }
+
+    if (authData.session) {
+      console.info("[StudentApplication] signUp returned an active session.");
+      setAuthSession(authData.session);
+      return authData.session;
+    }
+
+    console.info("[StudentApplication] signUp returned no session. Attempting password sign-in.");
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
+
+    if (signInError) {
+      console.error("[StudentApplication] signInWithPassword after signUp failed", signInError);
+      throw new Error(
+        "Account was created, but no authenticated session is available yet. Check Supabase email confirmation settings or sign in before submitting."
+      );
+    }
+
+    if (!signInData.session) {
+      console.error("[StudentApplication] signInWithPassword succeeded without a session.", signInData);
+      throw new Error("Authenticated session was not established. Please sign in and try again.");
+    }
+
+    setAuthSession(signInData.session);
+    return signInData.session;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -78,45 +159,39 @@ const StudentApplication: React.FC = () => {
 
     try {
       setSubmitting(true);
-
-      // 1) Create Supabase Auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            full_name: formData.fullName,
-            member_type: "STUDENT",
-          },
-        },
-      });
-
-      if (authError) throw authError;
-
-      const authUserId = authData.user?.id;
+      const session = await ensureAuthenticatedSession();
+      const authUserId = session.user.id;
 
       if (!authUserId) {
-        throw new Error("Failed to create account.");
+        throw new Error("You must be authenticated before submitting an application.");
+      }
+
+      if (session.user.email && session.user.email !== formData.email) {
+        throw new Error("The signed-in account email does not match the application email.");
       }
 
       // 2) Create members row
+      const memberInsertPayload = {
+        auth_user_id: authUserId,
+        member_id: null,
+        full_name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        member_type: "STUDENT",
+        account_status: "PENDING",
+      };
+      console.info("[StudentApplication] Inserting member row", memberInsertPayload);
+
       const { data: memberData, error: memberError } = await supabase
         .from("members")
-        .insert([
-          {
-            auth_user_id: authUserId,
-            member_id: null, // optional APRO member code; assign later on approval
-            full_name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            member_type: "STUDENT",
-            account_status: "PENDING",
-          },
-        ])
+        .insert([memberInsertPayload])
         .select("id")
         .single();
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error("[StudentApplication] members insert failed", memberError);
+        throw memberError;
+      }
 
       createdMemberRowId = memberData.id;
 
@@ -133,7 +208,10 @@ const StudentApplication: React.FC = () => {
         .select("id")
         .single();
 
-      if (applicationError) throw applicationError;
+      if (applicationError) {
+        console.error("[StudentApplication] applications insert failed", applicationError);
+        throw applicationError;
+      }
 
       createdApplicationId = applicationData.id;
 
@@ -159,10 +237,14 @@ const StudentApplication: React.FC = () => {
           },
         ]);
 
-      if (studentError) throw studentError;
+      if (studentError) {
+        console.error("[StudentApplication] student_details insert failed", studentError);
+        throw studentError;
+      }
 
       // 5) Sign out so they don't stay logged in before approval
       await supabase.auth.signOut();
+      setAuthSession(null);
 
       setMessage(
         "Student application submitted successfully. Your account has been created, but access will remain pending until admin approval."
@@ -170,6 +252,12 @@ const StudentApplication: React.FC = () => {
 
       resetForm();
     } catch (error: any) {
+      console.error("[StudentApplication] Submission failed", {
+        error,
+        createdMemberRowId,
+        createdApplicationId,
+        authUserId: authSession?.user?.id ?? null,
+      });
       setMessage(error.message || "Something went wrong while submitting.");
 
       // Frontend-only limitation:
