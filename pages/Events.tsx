@@ -26,7 +26,7 @@ const Events: React.FC = () => {
             <EventCard 
               icon={<Settings className="w-10 h-10 text-apra-blue" />}
               title="Rocket Design Workshop"
-              description="Focus on OpenRocket simulation and stability analysis. Learn the fundamentals of aerodynamic design."
+              description="Full-Stack Rocketry: Propulsion, Dynamics, and Mission Design."
               actionLabel="Register Now"
               active={true}
             />
@@ -132,7 +132,8 @@ const EventCard: React.FC<EventCardProps> = ({ icon, title, description, actionL
       </div>
       <p className="text-sm text-gray-600 mb-6 flex-grow">{description}</p>
       <a 
-        href="#" 
+        href="https://forms.gle/D1QV1Evxd6iC2hVo7"
+        target="_blank"
         className="w-full block text-center bg-apra-blue text-white py-2 rounded font-bold text-sm hover:bg-apra-dark transition-colors uppercase"
       >
         {actionLabel}
