@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import { supabase } from "../src/lib/supabase";
+import { FormShell, formInputClass, formLabelClass } from "../components/PageScaffold";
 
 const inputBase =
-  "w-full px-4 py-2 border border-gray-300 rounded " +
-  "focus:ring-2 focus:ring-apra-blue focus:border-transparent outline-none transition-all";
+  formInputClass;
 
 const ChapterApplication: React.FC = () => {
   const today = new Date().toLocaleDateString();
@@ -124,27 +124,20 @@ const ChapterApplication: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-3xl">
-        <div className="bg-white p-8 rounded-lg shadow-2xl border-t-4 border-apra-dark">
-          <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold font-heading text-apra-dark">
-              Chapter / Squadron Application
-            </h1>
-            <p className="text-sm text-gray-500 mt-2">
-              Institutional applications require faculty verification.
-            </p>
-          </div>
-
+    <FormShell
+      eyebrow="Chapter Application"
+      title="Chapter / Squadron setup."
+      description="Institutional applications are reviewed with faculty verification and compliance checks before approval."
+    >
           <form className="space-y-10" onSubmit={handleSubmit}>
             <section>
-              <h2 className="text-lg font-bold text-apra-dark mb-4">
+              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
                 Unit Information
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Proposed Unit Name
                   </label>
                   <input
@@ -157,7 +150,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     University / Host Institution
                   </label>
                   <input
@@ -170,7 +163,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Faculty Advisor Name
                   </label>
                   <input
@@ -183,7 +176,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Advisor Email
                   </label>
                   <input
@@ -197,7 +190,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Advisor Official Extension / Phone
                   </label>
                   <input
@@ -210,7 +203,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Squadron President / Lead Name
                   </label>
                   <input
@@ -223,7 +216,7 @@ const ChapterApplication: React.FC = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-bold text-gray-700 mb-1">
+                  <label className={formLabelClass}>
                     Estimated Member Count
                   </label>
                   <input
@@ -240,7 +233,7 @@ const ChapterApplication: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-apra-dark mb-4">
+              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
                 Compliance Declaration
               </h2>
 
@@ -261,11 +254,11 @@ const ChapterApplication: React.FC = () => {
                 ].map((item) => (
                   <div
                     key={item.key}
-                    className="p-4 border border-gray-200 rounded-lg bg-gray-50"
+                    className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4"
                   >
-                    <p className="text-sm font-bold text-gray-800 mb-3">{item.q}</p>
+                    <p className="mb-3 text-sm font-bold text-white">{item.q}</p>
 
-                    <div className="flex flex-wrap gap-6 text-sm">
+                    <div className="flex flex-wrap gap-6 text-sm text-slate-300">
                       <label className="flex items-center gap-2">
                         <input
                           type="radio"
@@ -315,11 +308,11 @@ const ChapterApplication: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-apra-dark mb-4">
+              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
                 Legal Agreement
               </h2>
 
-              <div className="border border-gray-200 rounded-lg bg-gray-50 p-4 max-h-64 overflow-auto text-sm text-gray-700 space-y-4 leading-relaxed">
+              <div className="max-h-64 overflow-auto rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-sm leading-relaxed text-slate-300 space-y-4">
                 <p>
                   <strong>
                     By signing this document, the Applicant (and Guardian if under
@@ -360,7 +353,7 @@ const ChapterApplication: React.FC = () => {
                 </p>
               </div>
 
-              <label className="flex gap-3 mt-4 text-sm text-gray-700">
+              <label className="mt-4 flex gap-3 text-sm text-slate-300">
                 <input
                   type="checkbox"
                   name="legalAgree"
@@ -377,11 +370,11 @@ const ChapterApplication: React.FC = () => {
             </section>
 
             <section>
-              <h2 className="text-lg font-bold text-apra-dark mb-4">
+              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
                 The Pledge
               </h2>
 
-              <div className="border border-gray-200 rounded-lg bg-gray-50 p-4 text-sm text-gray-700 leading-relaxed">
+              <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-sm text-slate-300 leading-relaxed">
                 <p>
                   "I refuse to wait for permission from the future. I pledge to use
                   my knowledge for the advancement of science and the peaceful
@@ -390,7 +383,7 @@ const ChapterApplication: React.FC = () => {
                 </p>
               </div>
 
-              <label className="flex gap-3 mt-4 text-sm text-gray-700">
+              <label className="mt-4 flex gap-3 text-sm text-slate-300">
                 <input
                   type="checkbox"
                   name="pledgeAgree"
@@ -403,19 +396,19 @@ const ChapterApplication: React.FC = () => {
               </label>
 
               <div className="mt-6">
-                <label className="block text-sm font-bold text-gray-700 mb-1">
+                <label className={formLabelClass}>
                   Date
                 </label>
                 <input
                   disabled
                   value={today}
-                  className={`${inputBase} bg-gray-100 text-gray-500 border-gray-200`}
+                  className={`${inputBase} bg-white/[0.02] text-slate-500`}
                 />
               </div>
             </section>
 
             {message && (
-              <div className="text-sm font-medium text-center text-apra-dark">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-medium text-center text-slate-100">
                 {message}
               </div>
             )}
@@ -423,21 +416,19 @@ const ChapterApplication: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-apra-blue text-white font-bold py-3 rounded hover:bg-apra-dark transition-colors uppercase tracking-wider disabled:opacity-60 disabled:cursor-not-allowed"
+              className="inline-flex items-center rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {submitting ? "Submitting..." : "Submit Application"}
             </button>
 
-            <div className="pt-6 border-t text-center bg-gray-50 -mx-8 -mb-8 p-4 rounded-b-lg">
-              <p className="text-xs text-gray-600">
+            <div className="border-t border-white/10 pt-6 text-center">
+              <p className="text-xs text-slate-400">
                 Your application will be reviewed manually. Credentials will be issued
                 upon approval.
               </p>
             </div>
           </form>
-        </div>
-      </div>
-    </div>
+    </FormShell>
   );
 };
 

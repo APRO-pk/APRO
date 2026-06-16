@@ -1,124 +1,82 @@
-import React from 'react';
-import { Rocket, RefreshCw, Shield } from 'lucide-react';
+import React from "react";
+import { RefreshCw, Rocket, Shield } from "lucide-react";
+import { PageHero, PageScaffold, SectionBand, SurfacePanel } from "../components/PageScaffold";
 
 const About: React.FC = () => {
   return (
-    <div className="flex flex-col">
-      {/* Hero Banner */}
-      <section className="relative h-96 flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <img 
-            src="https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?q=80&w=2070&auto=format&fit=crop" 
-            alt="Static Fire Test" 
-            className="w-full h-full object-cover brightness-50"
-          />
-        </div>
-        <div className="relative z-10 text-center text-white">
-          <h1 className="text-5xl md:text-6xl font-extrabold font-heading tracking-tight">
-            From Equations to Engines
-          </h1>
-        </div>
-      </section>
+    <PageScaffold>
+      <PageHero
+        eyebrow="About APRO"
+        title="From equations to engines."
+        description="APRO began as a refusal to wait for infrastructure before building technical culture. The organization exists to create a disciplined rocketry path in Pakistan where none was clearly available."
+      />
 
-      {/* History Section */}
-      <section className="bg-apra-dark text-white py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col lg:flex-row gap-12 items-center">
-            <div className="lg:w-1/2">
-              <h2 className="text-3xl font-bold font-heading mb-6 border-l-4 border-apra-blue pl-4">Our History</h2>
-              <p className="text-gray-300 leading-relaxed mb-6">
-                There was a time when Pakistani students found no defined path to practical rocketry. While curiosity existed, the infrastructure did not. APRO was born from a refusal to wait. It began as a specialized technical branch known as RPS (Rocket Propulsion Systems) within a university space society. This small group of engineers focused on understanding the physics of flight even when launch permissions were unavailable, operating under the philosophy that "if rockets could not fly, they would still be understood".
-              </p>
-            </div>
-            
-            {/* Timeline Visual */}
-            <div className="lg:w-1/2 w-full">
-              <div className="relative flex justify-between items-center w-full px-4 pt-8">
-                <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-600 -translate-y-1/2 z-0"></div>
-                
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-6 h-6 bg-apra-blue rounded-full border-4 border-apra-dark mb-4"></div>
-                  <div className="text-center">
-                    <span className="block font-bold text-apra-blue">2018</span>
-                    <span className="text-sm text-gray-400">No Path</span>
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-6 h-6 bg-apra-blue rounded-full border-4 border-apra-dark mb-4"></div>
-                  <div className="text-center">
-                    <span className="block font-bold text-apra-blue">2019</span>
-                    <span className="text-sm text-gray-400">RPS Formed</span>
-                  </div>
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center">
-                  <div className="w-6 h-6 bg-apra-blue rounded-full border-4 border-apra-dark mb-4"></div>
-                  <div className="text-center">
-                    <span className="block font-bold text-apra-blue">2020</span>
-                    <span className="text-sm text-gray-400">Focus on<br/>Understanding</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <SectionBand className="bg-[linear-gradient(180deg,rgba(24,15,48,0.84),rgba(8,10,18,0.98))]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+          <div>
+            <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Origins</div>
+            <h2 className="mt-4 max-w-[12ch] text-[clamp(2.8rem,4.5vw,5.2rem)] font-bold leading-[0.92] tracking-[-0.06em] text-white">
+              A technical path had to be built before rockets could fly.
+            </h2>
           </div>
-        </div>
-      </section>
-
-      {/* Technical Philosophy Section */}
-      <section className="bg-apra-dark text-white pb-20 pt-10">
-        <div className="container mx-auto px-4">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold font-heading mb-4">Our Technical Philosophy</h2>
-            <p className="text-gray-400">
-              Today, the All Pakistan Rocketry Association serves as the "absolute hammer" for systems engineering and safety in Pakistan. Our methodology is built on three pillars:
+          <div className="space-y-6 text-base leading-8 text-slate-300/78">
+            <p>
+              APRO traces back to a university technical branch known as RPS
+              (Rocket Propulsion Systems), formed when Pakistani students had
+              curiosity but no defined structure for practical rocketry.
+            </p>
+            <p>
+              The early philosophy was simple: if flight was restricted, the work
+              would still continue through analysis, test discipline, and systems
+              understanding. Data would replace altitude until the environment was
+              ready for both.
             </p>
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white text-apra-dark p-8 rounded-lg shadow-xl hover:-translate-y-2 transition-transform duration-300">
-              <div className="w-16 h-16 bg-apra-light rounded-full flex items-center justify-center mb-6 text-apra-blue">
-                <Rocket size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-4">Static Fire & Propulsion Analysis</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                We prioritize rigorous ground testing. In environments where flight restrictions exist, "data replaces altitude". We focus on static engine firing to validate specific impulse, thrust curves, and combustion stability.
-              </p>
-            </div>
-
-            <div className="bg-white text-apra-dark p-8 rounded-lg shadow-xl hover:-translate-y-2 transition-transform duration-300">
-              <div className="w-16 h-16 bg-apra-light rounded-full flex items-center justify-center mb-6 text-apra-blue">
-                <RefreshCw size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-4">Iterative Design Cycles</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                We teach members to "design, test, and fail safely". By treating failure as a data point rather than a defeat, we enable rapid prototyping and the development of robust propulsion systems.
-              </p>
-            </div>
-
-            <div className="bg-white text-apra-dark p-8 rounded-lg shadow-xl hover:-translate-y-2 transition-transform duration-300">
-              <div className="w-16 h-16 bg-apra-light rounded-full flex items-center justify-center mb-6 text-apra-alert">
-                <Shield size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-4">Regulatory & Safety Standards</h3>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                Recognizing that early "flight was illegal", APRO is dedicated to legalizing and standardizing amateur rocketry. We are building the safety codes and responsibility frameworks required to open up Pakistan's airspace.
-              </p>
-            </div>
-          </div>
         </div>
-      </section>
+      </SectionBand>
 
-      {/* Mission */}
-      <section className="bg-apra-dark text-white pb-20 border-t border-gray-800">
-        <div className="container mx-auto px-4 text-center pt-12">
-          <h2 className="text-2xl font-bold font-heading mb-4 text-apra-blue">Our Mission</h2>
-          <p className="max-w-4xl mx-auto text-lg text-gray-300 italic">
-            "We invite the 'space citizens of Pakistan' to join us. APRO was formed not for immediate glory, but to 'prepare patiently'. We are here to help your skies learn to answer back."
-          </p>
+      <SectionBand className="bg-[linear-gradient(180deg,rgba(12,14,28,0.92),rgba(8,11,18,0.98))]">
+        <div className="grid gap-6 lg:grid-cols-3">
+          <SurfacePanel>
+            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.04]">
+              <Rocket className="h-6 w-6 text-violet-100" />
+            </div>
+            <div className="mt-8 text-[11px] uppercase tracking-[0.34em] text-slate-400">Pillar 01</div>
+            <h3 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-white">Static fire and propulsion analysis</h3>
+            <p className="mt-4 text-base leading-8 text-slate-300/76">
+              Ground testing comes first. When flight windows are limited, APRO
+              prioritizes thrust curves, stability, combustion behavior, and real
+              propulsion data.
+            </p>
+          </SurfacePanel>
+
+          <SurfacePanel className="bg-[linear-gradient(180deg,rgba(18,24,44,0.9),rgba(8,10,18,0.96))]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.04]">
+              <RefreshCw className="h-6 w-6 text-cyan-100" />
+            </div>
+            <div className="mt-8 text-[11px] uppercase tracking-[0.34em] text-slate-400">Pillar 02</div>
+            <h3 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-white">Iterative design cycles</h3>
+            <p className="mt-4 text-base leading-8 text-slate-300/76">
+              Design, test, fail safely, and learn. APRO treats failure as data,
+              not drama, so members can build robust systems through iteration.
+            </p>
+          </SurfacePanel>
+
+          <SurfacePanel className="bg-[linear-gradient(180deg,rgba(10,28,34,0.92),rgba(8,10,18,0.96))]">
+            <div className="flex h-14 w-14 items-center justify-center rounded-[18px] border border-white/10 bg-white/[0.04]">
+              <Shield className="h-6 w-6 text-emerald-100" />
+            </div>
+            <div className="mt-8 text-[11px] uppercase tracking-[0.34em] text-slate-400">Pillar 03</div>
+            <h3 className="mt-3 text-3xl font-bold tracking-[-0.05em] text-white">Regulatory and safety standards</h3>
+            <p className="mt-4 text-base leading-8 text-slate-300/76">
+              Technical culture does not scale without safety culture. APRO is
+              building the governance and responsibility framework required for
+              long-term aerospace work.
+            </p>
+          </SurfacePanel>
         </div>
-      </section>
-    </div>
+      </SectionBand>
+    </PageScaffold>
   );
 };
 
