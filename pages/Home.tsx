@@ -259,15 +259,16 @@ const Home: React.FC = () => {
               System Logic
             </div>
             <h2 className="mt-5 max-w-[14ch] text-[clamp(3rem,5vw,6rem)] font-bold leading-[0.92] tracking-[-0.065em] text-white">
-              The site should route people, not just explain the mission.
+              Join APRO, start a chapter, or Join as a student.
             </h2>
           </div>
 
           <div className="flex flex-col justify-end">
             <p className="max-w-2xl text-[clamp(1rem,1.25vw,1.2rem)] leading-[1.9] text-slate-300/79">
-              APRO starts with a membership layer, expands through chapters, and
-              stays disciplined through safety and governance. The home page should
-              expose those paths immediately and let people move.
+              APRO begins with membership, grows through chapters, and stays
+              disciplined through safety and governance. Every route here is meant
+              to move people directly into the part of the ecosystem they are ready
+              to build.
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
