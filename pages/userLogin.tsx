@@ -83,10 +83,7 @@ const UserLogin: React.FC = () => {
     setForgotLoading(true);
 
     try {
-      const redirectTo = `${window.location.origin}${window.location.pathname}#/reset-password`;
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-        redirectTo,
-      });
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(forgotEmail);
 
       if (resetError) {
         setError(resetError.message);

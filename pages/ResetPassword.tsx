@@ -11,13 +11,25 @@ const ResetPassword: React.FC = () => {
   const [error, setError] = useState("");
   const [recovered, setRecovered] = useState(false);
   const [done, setDone] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        setRecovered(true);
+      }
+      setChecking(false);
+    };
+
+    checkSession();
+
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event) => {
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setRecovered(true);
+        setChecking(false);
       }
     });
 
@@ -67,9 +79,13 @@ const ResetPassword: React.FC = () => {
       title="Set a new password."
       description="Choose a strong password to secure your APRO account."
     >
-      {!recovered ? (
+      {checking ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-6 text-center text-sm text-slate-300">
           Checking your reset link...
+        </div>
+      ) : !recovered ? (
+        <div className="rounded-2xl border border-yellow-400/20 bg-yellow-400/10 px-4 py-6 text-center text-sm text-yellow-100">
+          This reset link is invalid or expired. Please request a new one.
         </div>
       ) : done ? (
         <div className="rounded-2xl border border-violet-200/24 bg-violet-400/10 px-4 py-6 text-center text-sm text-violet-100">

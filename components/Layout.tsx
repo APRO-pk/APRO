@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Instagram, Menu, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { NAV_ITEMS } from "../types";
@@ -21,6 +21,7 @@ const navPillStyle: React.CSSProperties = {
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getSession = async () => {
@@ -31,8 +32,11 @@ export const Layout: React.FC = () => {
     getSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
+        if (event === "PASSWORD_RECOVERY") {
+          navigate("/reset-password");
+        }
       }
     );
 
