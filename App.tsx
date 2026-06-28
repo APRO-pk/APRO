@@ -18,6 +18,7 @@ import StudentApplicationsPage from './pages/StudentApplicationsPage';
 import ChapterApplicationsPage from './pages/ChapterApplicationsPage';
 import CareerApplicationsPage from './pages/CareerApplicationsPage';
 import UserLogin from './pages/userLogin';
+import ResetPassword from './pages/ResetPassword';
 
 
 function App() {
@@ -37,6 +38,7 @@ function App() {
           <Route path="join" element={<JoinAproApplication />} />
           <Route path="admin" element={<AdminLogin />} />
           <Route path="login" element={<UserLogin />} />
+          <Route path="reset-password" element={<ResetPassword />} />
           <Route
             path="/admin/dashboard"
             element={
