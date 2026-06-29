@@ -138,6 +138,7 @@ const AdminDashboard: React.FC = () => {
                 <QuickLink to="/admin/students" label="Review Student Applications" />
                 <QuickLink to="/admin/chapters" label="Review Chapter Applications" />
                 <QuickLink to="/admin/careers" label="Review Career Applications" />
+                <QuickLink to="/admin/feedback" label="Manage Feedback & Bugs" />
               </div>
             </SurfacePanel>
 

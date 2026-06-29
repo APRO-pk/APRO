@@ -19,6 +19,8 @@ import ChapterApplicationsPage from './pages/ChapterApplicationsPage';
 import CareerApplicationsPage from './pages/CareerApplicationsPage';
 import UserLogin from './pages/userLogin';
 import ResetPassword from './pages/ResetPassword';
+import FeedbackHub from './pages/FeedbackHub';
+import AdminFeedback from './pages/AdminFeedback';
 
 
 function App() {
@@ -39,6 +41,7 @@ function App() {
           <Route path="admin" element={<AdminLogin />} />
           <Route path="login" element={<UserLogin />} />
           <Route path="reset-password" element={<ResetPassword />} />
+          <Route path="feedback" element={<FeedbackHub />} />
           <Route
             path="/admin/dashboard"
             element={
@@ -68,6 +71,13 @@ function App() {
                     <CareerApplicationsPage />
                   </ProtectedAdminRoute>
                 } />
+                <Route
+                  path="/admin/feedback"
+                  element={
+                    <ProtectedAdminRoute>
+                      <AdminFeedback />
+                    </ProtectedAdminRoute>
+                  } />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
