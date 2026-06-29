@@ -57,6 +57,18 @@ export const Layout: React.FC = () => {
           0%, 100% { opacity: 0.45; transform: translate3d(0, 0, 0) scale(1); }
           50% { opacity: 0.75; transform: translate3d(0, -8px, 0) scale(1.03); }
         }
+        @keyframes navRainbow {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        .nav-rainbow-active {
+          border-color: transparent !important;
+          background-image: linear-gradient(180deg, rgba(132,97,255,0.22), rgba(98,62,192,0.14)), linear-gradient(90deg, #A07CFE, #FE8FB5, #FFBE7B, #57E0A0, #60A5FA, #A07CFE) !important;
+          background-origin: padding-box, border-box !important;
+          background-repeat: no-repeat !important;
+          background-size: 100% 100%, 200% 100% !important;
+          animation: navRainbow 3s linear infinite !important;
+        }
       `}</style>
 
       <div className="pointer-events-none absolute inset-0">
@@ -120,7 +132,9 @@ export const Layout: React.FC = () => {
                   to={item.path}
                   className={({ isActive }) =>
                     `rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition duration-300 ${
-                      isActive
+                      isActive && item.path === "/apro-works"
+                        ? "nav-rainbow-active"
+                        : isActive
                         ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
                         : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
                     }`
@@ -183,7 +197,9 @@ export const Layout: React.FC = () => {
                     onClick={() => setIsMenuOpen(false)}
                     className={({ isActive }) =>
                       `block rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
-                        isActive
+                        isActive && item.path === "/apro-works"
+                          ? "nav-rainbow-active"
+                          : isActive
                           ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
                           : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
                       }`
