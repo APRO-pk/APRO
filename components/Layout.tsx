@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { Instagram, Menu, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { NAV_ITEMS } from "../types";
@@ -20,7 +20,9 @@ const navPillStyle: React.CSSProperties = {
 
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -48,7 +50,18 @@ export const Layout: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsMenuOpen(false);
+    setUserMenuOpen(false);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#05070d] text-white">
@@ -60,6 +73,10 @@ export const Layout: React.FC = () => {
         @keyframes navRainbow {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
+        }
+        @keyframes dropdownFadeIn {
+          0% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
         }
         .nav-rainbow-active {
           border-color: transparent !important;
@@ -148,26 +165,35 @@ export const Layout: React.FC = () => {
 
             <div className="hidden items-center gap-3 lg:flex">
               {user ? (
-                <>
-                  <div
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-right"
-                    style={navPillStyle}
-                  >
-                    <div className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
-                      Signed In
-                    </div>
-                    <div className="max-w-[160px] truncate text-sm font-semibold text-white">
-                      {user.email?.split("@")[0] || user.email}
-                    </div>
-                  </div>
+                <div className="relative" ref={menuRef}>
                   <button
-                    onClick={handleLogout}
-                    className="rounded-full border border-white/12 bg-white/[0.04] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                    onClick={() => setUserMenuOpen((v) => !v)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
                     style={navPillStyle}
                   >
-                    Logout
+                    {user.email?.split("@")[0] || user.email}
                   </button>
-                </>
+                  {userMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1120] shadow-xl"
+                      style={{ animation: "dropdownFadeIn 0.15s ease-out" }}
+                    >
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-3 text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-white/[0.06]"
+                      >
+                        Log out
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <NavLink
                   to="/login"
@@ -218,19 +244,24 @@ export const Layout: React.FC = () => {
                       className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3"
                       style={navPillStyle}
                     >
-                      <div className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
-                        Signed In
-                      </div>
-                      <div className="mt-1 truncate text-sm font-semibold text-white">
+                      <div className="truncate text-sm font-semibold text-white">
                         {user.email?.split("@")[0] || user.email}
                       </div>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                    <Link
+                      to="/admin/dashboard"
+                      onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                      className="block w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition duration-300 hover:bg-white/[0.08]"
                       style={navPillStyle}
                     >
-                      Logout
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-red-400 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                      style={navPillStyle}
+                    >
+                      Log out
                     </button>
                   </div>
                 ) : (
