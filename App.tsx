@@ -21,6 +21,7 @@ import UserLogin from './pages/userLogin';
 import ResetPassword from './pages/ResetPassword';
 import FeedbackHub from './pages/FeedbackHub';
 import AdminFeedback from './pages/AdminFeedback';
+import AproWorks from './pages/AproWorks';
 
 
 function App() {
@@ -29,6 +30,7 @@ function App() {
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
+          <Route path="apro-works" element={<AproWorks />} />
           <Route path="about" element={<About />} />
           <Route path="events" element={<Events />} />
           <Route path="resources" element={<Resources />} />

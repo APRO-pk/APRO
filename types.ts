@@ -5,6 +5,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Home', path: '/' },
+  { label: 'APRO Works', path: '/apro-works' },
   { label: 'About APRO', path: '/about' },
   // { label: 'Resources', path: '/resources' },
   { label: 'Events', path: '/events' },
