@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, ArrowRight, Sparkles, Monitor } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
@@ -39,23 +39,51 @@ const apps = [
 
 const AproWorks: React.FC = () => {
   const [user, setUser] = useState<any>(null);
-  const heroRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showRest, setShowRest] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => {
-      if (!heroRef.current) return;
-      const rect = heroRef.current.getBoundingClientRect();
-      const h = heroRef.current.offsetHeight;
-      const scrolledPast = -rect.top;
-      const p = Math.max(0, Math.min(1, scrolledPast / (h * 0.7)));
-      setScrollProgress(p);
-      if (p >= 1) setShowRest(true);
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    let progress = 0;
+    let touchStartY = 0;
+
+    const unlock = () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
     };
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    const onWheel = (e: WheelEvent) => {
+      if (progress >= 1) return;
+      e.preventDefault();
+      progress = Math.max(0, Math.min(1, progress + (e.deltaY > 0 ? 0.04 : -0.04)));
+      setScrollProgress(progress);
+      if (progress >= 1) { unlock(); setShowRest(true); }
+    };
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (progress >= 1) return;
+      e.preventDefault();
+      const dy = touchStartY - e.touches[0].clientY;
+      progress = Math.max(0, Math.min(1, progress + (dy > 0 ? 0.03 : -0.03)));
+      setScrollProgress(progress);
+      touchStartY = e.touches[0].clientY;
+      if (progress >= 1) { unlock(); setShowRest(true); }
+    };
+
+    window.addEventListener("wheel", onWheel, { passive: false });
+    window.addEventListener("touchstart", onTouchStart, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+
+    return unlock;
   }, []);
 
   useEffect(() => {
@@ -101,8 +129,8 @@ const AproWorks: React.FC = () => {
       `}</style>
 
       {/* Hero */}
-      <section ref={heroRef} className="relative mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12" style={{ minHeight: "180vh" }}>
-        <div className="sticky top-4 rounded-[40px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,34,0.92),rgba(8,10,18,0.98))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_24px_54px_rgba(4,7,16,0.26)]">
+      <section className="relative mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12">
+        <div className="overflow-hidden rounded-[40px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,34,0.92),rgba(8,10,18,0.98))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_24px_54px_rgba(4,7,16,0.26)]">
           <div className="grid lg:grid-cols-[1fr_1.4fr] lg:items-stretch">
             <div className="p-8 md:p-10 xl:p-14" style={{ opacity: 1 - scrollProgress, transition: "none" }}>
               <div className="flex items-center gap-3 text-violet-200/90 mb-4">
