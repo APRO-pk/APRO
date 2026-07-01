@@ -4,6 +4,7 @@ import { Download, ArrowRight, Sparkles, Monitor, LayoutGrid } from "lucide-reac
 import { supabase } from "../src/lib/supabase";
 import { PageScaffold, SectionBand, SurfacePanel } from "../components/PageScaffold";
 import aproWorksLogo from "../assets/AproWorks.png";
+import aproWorksSide from "../assets/AproworksSideView.png";
 import geometryLogo from "../assets/GeometryModeler.png";
 import propulsorLogo from "../assets/Propulsor.png";
 import hexadofLogo from "../assets/Hexadof.png";
@@ -121,16 +122,8 @@ const AproWorks: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="hidden lg:flex lg:justify-end">
-              <div className="relative flex h-64 w-64 items-center justify-center rounded-[32px] border border-white/10 bg-white/[0.03]">
-                <img src={aproWorksLogo} alt="APRO Works" className="h-32 w-auto object-contain opacity-60" />
-                <div className="absolute -inset-4 rounded-[40px] border border-violet-500/10 bg-violet-500/5 blur-sm" />
-                <div className="absolute -inset-8 rounded-[48px] border border-violet-500/5" />
-                <div className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full bg-violet-500/20 px-2.5 py-1">
-                  <div className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                  <span className="text-[9px] uppercase tracking-wider text-violet-200">v0.1</span>
-                </div>
-              </div>
+            <div className="hidden lg:block">
+              <img src={aproWorksSide} alt="APRO Works side view" className="h-full w-full rounded-[32px] object-cover" />
             </div>
           </div>
         </div>
