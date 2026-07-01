@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, ArrowRight, Sparkles, Monitor, LayoutGrid } from "lucide-react";
+import { Download, ArrowRight, Sparkles, Monitor } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { PageScaffold, SectionBand, SurfacePanel } from "../components/PageScaffold";
 import aproWorksLogo from "../assets/AproWorks.png";
@@ -39,6 +39,22 @@ const apps = [
 
 const AproWorks: React.FC = () => {
   const [user, setUser] = useState<any>(null);
+  const heroRef = useRef<HTMLDivElement>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!heroRef.current) return;
+      const rect = heroRef.current.getBoundingClientRect();
+      const h = heroRef.current.offsetHeight;
+      const scrolledPast = -rect.top;
+      const p = Math.max(0, Math.min(1, scrolledPast / (h * 0.5)));
+      setScrollProgress(p);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   useEffect(() => {
     const init = async () => {
@@ -83,10 +99,10 @@ const AproWorks: React.FC = () => {
       `}</style>
 
       {/* Hero */}
-      <section className="mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12">
-        <div className="rounded-[40px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,34,0.92),rgba(8,10,18,0.98))] p-8 shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_24px_54px_rgba(4,7,16,0.26)] md:p-10 xl:p-14">
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-            <div>
+      <section ref={heroRef} className="relative mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12" style={{ minHeight: "180vh" }}>
+        <div className="sticky top-4 rounded-[40px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,34,0.92),rgba(8,10,18,0.98))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_24px_54px_rgba(4,7,16,0.26)]">
+          <div className="grid lg:grid-cols-[1fr_1.4fr] lg:items-stretch">
+            <div className="p-8 md:p-10 xl:p-14" style={{ opacity: 1 - scrollProgress, transition: "none" }}>
               <div className="flex items-center gap-3 text-violet-200/90 mb-4">
                 <span className="text-[11px] uppercase tracking-[0.38em] text-slate-300/90">BETA PROGRAM</span>
               </div>
@@ -122,8 +138,8 @@ const AproWorks: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="hidden lg:block">
-              <img src={aproWorksSide} alt="APRO Works side view" className="h-full w-full rounded-[32px] object-cover" />
+            <div className="hidden lg:relative lg:z-10 lg:block" style={{ transform: `translateX(-${scrollProgress * 85}%)`, transition: "none" }}>
+              <img src={aproWorksSide} alt="APRO Works side view" className="h-full w-full rounded-l-[40px] object-cover" />
             </div>
           </div>
         </div>
