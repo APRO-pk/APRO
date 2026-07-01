@@ -41,6 +41,7 @@ const AproWorks: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const heroRef = useRef<HTMLDivElement>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
+  const [showRest, setShowRest] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,8 +49,9 @@ const AproWorks: React.FC = () => {
       const rect = heroRef.current.getBoundingClientRect();
       const h = heroRef.current.offsetHeight;
       const scrolledPast = -rect.top;
-      const p = Math.max(0, Math.min(1, scrolledPast / (h * 0.5)));
+      const p = Math.max(0, Math.min(1, scrolledPast / (h * 1.0)));
       setScrollProgress(p);
+      if (p >= 1) setShowRest(true);
     };
     window.addEventListener("scroll", handleScroll, { passive: true });
     handleScroll();
@@ -145,7 +147,13 @@ const AproWorks: React.FC = () => {
         </div>
       </section>
 
-      {/* Animated Beam Section */}
+      <div style={{
+        opacity: showRest ? 1 : 0,
+        transform: showRest ? "translateY(0)" : "translateY(60px)",
+        transition: "opacity 0.8s ease, transform 0.8s ease",
+        pointerEvents: showRest ? "auto" : "none",
+      }}>
+        {/* Animated Beam Section */}
       <SectionBand className="mt-6">
         <div className="text-center">
           <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Available Applications</div>
@@ -261,6 +269,7 @@ const AproWorks: React.FC = () => {
           </div>
         </div>
       </SectionBand>
+      </div>
     </PageScaffold>
   );
 };
