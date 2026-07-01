@@ -47,8 +47,6 @@ const AproWorks: React.FC = () => {
   useEffect(() => {
     const hero = document.querySelector<HTMLElement>(".apro-hero-section");
     let touchStartY = 0;
-    let releasedUp = false;
-    let releasedDown = false;
 
     const lock = () => {
       document.body.style.overflow = "hidden";
@@ -67,14 +65,23 @@ const AproWorks: React.FC = () => {
       e.preventDefault();
       const delta = e.deltaY / 600;
       const next = Math.max(0, Math.min(1, progressRef.current + delta));
+
+      if (next >= 1 && delta > 0) {
+        progressRef.current = 1;
+        setScrollProgress(1);
+        setShowRest(true);
+        unlock();
+        return;
+      }
+      if (next <= 0 && delta < 0) {
+        progressRef.current = 0;
+        setScrollProgress(0);
+        unlock();
+        return;
+      }
+
       progressRef.current = next;
       setScrollProgress(next);
-      if (next <= 0) releasedUp = true;
-      if (releasedUp && delta > 0) { releasedUp = false; return; }
-      if (next <= 0 && delta < 0) { unlock(); return; }
-      if (next >= 1 && delta > 0) { unlock(); setShowRest(true); return; }
-      if (next >= 1) releasedDown = true;
-      if (releasedDown && delta < 0) { releasedDown = false; return; }
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -87,26 +94,35 @@ const AproWorks: React.FC = () => {
       const dy = touchStartY - e.touches[0].clientY;
       const delta = dy / 20;
       const next = Math.max(0, Math.min(1, progressRef.current + delta));
+
+      if (next >= 1 && delta > 0) {
+        progressRef.current = 1;
+        setScrollProgress(1);
+        setShowRest(true);
+        unlock();
+        touchStartY = e.touches[0].clientY;
+        return;
+      }
+      if (next <= 0 && delta < 0) {
+        progressRef.current = 0;
+        setScrollProgress(0);
+        unlock();
+        touchStartY = e.touches[0].clientY;
+        return;
+      }
+
       progressRef.current = next;
       setScrollProgress(next);
-      if (next <= 0) releasedUp = true;
-      if (releasedUp && delta > 0) { releasedUp = false; return; }
-      if (next <= 0 && delta < 0) { unlock(); return; }
-      if (next >= 1 && delta > 0) { unlock(); setShowRest(true); return; }
-      if (next >= 1) releasedDown = true;
-      if (releasedDown && delta < 0) { releasedDown = false; return; }
       touchStartY = e.touches[0].clientY;
     };
 
     const onScroll = () => {
       if (!hero || lockedRef.current) return;
       const rect = hero.getBoundingClientRect();
-      if (rect.top >= 0 && rect.top < window.innerHeight) {
+      if (rect.top >= 0 && rect.top < window.innerHeight && window.scrollY > 0) {
         progressRef.current = 0;
         setScrollProgress(0);
         setShowRest(false);
-        releasedUp = false;
-        releasedDown = false;
         lock();
         hero.scrollIntoView({ behavior: "smooth" });
       }
