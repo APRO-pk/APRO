@@ -49,8 +49,8 @@ const AproWorks: React.FC = () => {
 
     const onWheel = (e: WheelEvent) => {
       if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const visible = rect.top < window.innerHeight && rect.bottom > 0;
+      const r = hero.getBoundingClientRect();
+      const visible = r.top >= 0 && r.bottom <= window.innerHeight;
       if (!visible) return;
 
       const delta = e.deltaY / 600;
@@ -81,8 +81,8 @@ const AproWorks: React.FC = () => {
 
     const onTouchMove = (e: TouchEvent) => {
       if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      const visible = rect.top < window.innerHeight && rect.bottom > 0;
+      const r = hero.getBoundingClientRect();
+      const visible = r.top >= 0 && r.bottom <= window.innerHeight;
       if (!visible) return;
 
       const dy = touchStartY - e.touches[0].clientY;
