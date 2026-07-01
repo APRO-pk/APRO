@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, ArrowRight, Sparkles, Monitor } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
@@ -41,46 +41,37 @@ const AproWorks: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showRest, setShowRest] = useState(false);
-  const progressRef = useRef(0);
-  const lockedRef = useRef(true);
 
   useEffect(() => {
     const hero = document.querySelector<HTMLElement>(".apro-hero-section");
+    let progress = 0;
     let touchStartY = 0;
 
-    const lock = () => {
-      document.body.style.overflow = "hidden";
-      document.documentElement.style.overflow = "hidden";
-      lockedRef.current = true;
-    };
-
-    const unlock = () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
-      lockedRef.current = false;
-    };
-
     const onWheel = (e: WheelEvent) => {
-      if (!lockedRef.current) return;
-      e.preventDefault();
+      if (!hero) return;
+      const rect = hero.getBoundingClientRect();
+      const visible = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!visible) return;
+
       const delta = e.deltaY / 600;
-      const next = Math.max(0, Math.min(1, progressRef.current + delta));
+      const next = Math.max(0, Math.min(1, progress + delta));
 
       if (next >= 1 && delta > 0) {
-        progressRef.current = 1;
+        progress = 1;
         setScrollProgress(1);
         setShowRest(true);
-        unlock();
-        return;
-      }
-      if (next <= 0 && delta < 0) {
-        progressRef.current = 0;
-        setScrollProgress(0);
-        unlock();
         return;
       }
 
-      progressRef.current = next;
+      if (next <= 0 && delta < 0) {
+        progress = 0;
+        setScrollProgress(0);
+        return;
+      }
+
+      e.preventDefault();
+      if (next < 1) setShowRest(false);
+      progress = next;
       setScrollProgress(next);
     };
 
@@ -89,57 +80,45 @@ const AproWorks: React.FC = () => {
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (!lockedRef.current) return;
-      e.preventDefault();
+      if (!hero) return;
+      const rect = hero.getBoundingClientRect();
+      const visible = rect.top < window.innerHeight && rect.bottom > 0;
+      if (!visible) return;
+
       const dy = touchStartY - e.touches[0].clientY;
       const delta = dy / 20;
-      const next = Math.max(0, Math.min(1, progressRef.current + delta));
+      const next = Math.max(0, Math.min(1, progress + delta));
 
       if (next >= 1 && delta > 0) {
-        progressRef.current = 1;
+        progress = 1;
         setScrollProgress(1);
         setShowRest(true);
-        unlock();
-        touchStartY = e.touches[0].clientY;
-        return;
-      }
-      if (next <= 0 && delta < 0) {
-        progressRef.current = 0;
-        setScrollProgress(0);
-        unlock();
         touchStartY = e.touches[0].clientY;
         return;
       }
 
-      progressRef.current = next;
+      if (next <= 0 && delta < 0) {
+        progress = 0;
+        setScrollProgress(0);
+        touchStartY = e.touches[0].clientY;
+        return;
+      }
+
+      e.preventDefault();
+      if (next < 1) setShowRest(false);
+      progress = next;
       setScrollProgress(next);
       touchStartY = e.touches[0].clientY;
-    };
-
-    const onScroll = () => {
-      if (!hero || lockedRef.current) return;
-      const rect = hero.getBoundingClientRect();
-      if (rect.top >= 0 && rect.top < window.innerHeight && window.scrollY > 0) {
-        progressRef.current = 0;
-        setScrollProgress(0);
-        setShowRest(false);
-        lock();
-        hero.scrollIntoView({ behavior: "smooth" });
-      }
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
-    window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => {
-      document.body.style.overflow = "";
-      document.documentElement.style.overflow = "";
       window.removeEventListener("wheel", onWheel);
       window.removeEventListener("touchstart", onTouchStart);
       window.removeEventListener("touchmove", onTouchMove);
-      window.removeEventListener("scroll", onScroll);
     };
   }, []);
 
