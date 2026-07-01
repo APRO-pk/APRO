@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, ArrowRight, Sparkles, Monitor } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
@@ -41,28 +41,40 @@ const AproWorks: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showRest, setShowRest] = useState(false);
+  const progressRef = useRef(0);
+  const lockedRef = useRef(true);
 
   useEffect(() => {
-    document.body.style.overflow = "hidden";
-    document.documentElement.style.overflow = "hidden";
-
-    let progress = 0;
+    const hero = document.querySelector<HTMLElement>(".apro-hero-section");
     let touchStartY = 0;
+    let releasedUp = false;
+    let releasedDown = false;
+
+    const lock = () => {
+      document.body.style.overflow = "hidden";
+      document.documentElement.style.overflow = "hidden";
+      lockedRef.current = true;
+    };
 
     const unlock = () => {
       document.body.style.overflow = "";
       document.documentElement.style.overflow = "";
-      window.removeEventListener("wheel", onWheel);
-      window.removeEventListener("touchstart", onTouchStart);
-      window.removeEventListener("touchmove", onTouchMove);
+      lockedRef.current = false;
     };
 
     const onWheel = (e: WheelEvent) => {
-      if (progress >= 1) return;
+      if (!lockedRef.current) return;
       e.preventDefault();
-      progress = Math.max(0, Math.min(1, progress + (e.deltaY > 0 ? 0.04 : -0.04)));
-      setScrollProgress(progress);
-      if (progress >= 1) { unlock(); setShowRest(true); }
+      const delta = e.deltaY / 600;
+      const next = Math.max(0, Math.min(1, progressRef.current + delta));
+      progressRef.current = next;
+      setScrollProgress(next);
+      if (next <= 0) releasedUp = true;
+      if (releasedUp && delta > 0) { releasedUp = false; return; }
+      if (next <= 0 && delta < 0) { unlock(); return; }
+      if (next >= 1 && delta > 0) { unlock(); setShowRest(true); return; }
+      if (next >= 1) releasedDown = true;
+      if (releasedDown && delta < 0) { releasedDown = false; return; }
     };
 
     const onTouchStart = (e: TouchEvent) => {
@@ -70,20 +82,49 @@ const AproWorks: React.FC = () => {
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      if (progress >= 1) return;
+      if (!lockedRef.current) return;
       e.preventDefault();
       const dy = touchStartY - e.touches[0].clientY;
-      progress = Math.max(0, Math.min(1, progress + (dy > 0 ? 0.03 : -0.03)));
-      setScrollProgress(progress);
+      const delta = dy / 20;
+      const next = Math.max(0, Math.min(1, progressRef.current + delta));
+      progressRef.current = next;
+      setScrollProgress(next);
+      if (next <= 0) releasedUp = true;
+      if (releasedUp && delta > 0) { releasedUp = false; return; }
+      if (next <= 0 && delta < 0) { unlock(); return; }
+      if (next >= 1 && delta > 0) { unlock(); setShowRest(true); return; }
+      if (next >= 1) releasedDown = true;
+      if (releasedDown && delta < 0) { releasedDown = false; return; }
       touchStartY = e.touches[0].clientY;
-      if (progress >= 1) { unlock(); setShowRest(true); }
+    };
+
+    const onScroll = () => {
+      if (!hero || lockedRef.current) return;
+      const rect = hero.getBoundingClientRect();
+      if (rect.top >= 0 && rect.top < window.innerHeight) {
+        progressRef.current = 0;
+        setScrollProgress(0);
+        setShowRest(false);
+        releasedUp = false;
+        releasedDown = false;
+        lock();
+        hero.scrollIntoView({ behavior: "smooth" });
+      }
     };
 
     window.addEventListener("wheel", onWheel, { passive: false });
     window.addEventListener("touchstart", onTouchStart, { passive: true });
     window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("scroll", onScroll, { passive: true });
 
-    return unlock;
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+      window.removeEventListener("wheel", onWheel);
+      window.removeEventListener("touchstart", onTouchStart);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("scroll", onScroll);
+    };
   }, []);
 
   useEffect(() => {
@@ -129,10 +170,10 @@ const AproWorks: React.FC = () => {
       `}</style>
 
       {/* Hero */}
-      <section className="relative mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12">
+      <section className="apro-hero-section relative mx-auto w-full max-w-[1880px] px-5 pt-4 md:px-8 md:pt-6 xl:px-12">
         <div className="overflow-hidden rounded-[40px] border border-white/10 bg-[linear-gradient(180deg,rgba(17,18,34,0.92),rgba(8,10,18,0.98))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_24px_54px_rgba(4,7,16,0.26)]">
           <div className="grid lg:grid-cols-[1fr_1.4fr] lg:items-stretch">
-            <div className="p-8 md:p-10 xl:p-14" style={{ opacity: 1 - scrollProgress, transition: "none" }}>
+            <div className="p-8 md:p-10 xl:p-14" style={{ opacity: 1 - scrollProgress, transition: "opacity 0.1s linear" }}>
               <div className="flex items-center gap-3 text-violet-200/90 mb-4">
                 <span className="text-[11px] uppercase tracking-[0.38em] text-slate-300/90">BETA PROGRAM</span>
               </div>
@@ -168,7 +209,7 @@ const AproWorks: React.FC = () => {
                 </div>
               </div>
             </div>
-            <div className="hidden lg:relative lg:z-10 lg:block" style={{ transform: `translateX(-${scrollProgress * 85}%)`, transition: "none" }}>
+            <div className="hidden lg:relative lg:z-10 lg:block" style={{ transform: `translateX(-${scrollProgress * 85}%)`, transition: "transform 0.1s linear" }}>
               <img src={aproWorksSide} alt="APRO Works side view" className="h-full w-full rounded-l-[40px] object-cover" />
             </div>
           </div>
