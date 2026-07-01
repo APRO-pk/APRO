@@ -142,13 +142,13 @@ export const Layout: React.FC = () => {
               </div>
             </NavLink>
 
-            <nav className="hidden items-center gap-2 lg:flex">
+            <nav className="hidden items-center gap-1 lg:flex">
               {NAV_ITEMS.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
                   className={({ isActive }) =>
-                    `rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition duration-300 ${
+                    `group flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all duration-300 ${
                       isActive && item.path === "/apro-works"
                         ? "nav-rainbow-active"
                         : isActive
@@ -158,7 +158,10 @@ export const Layout: React.FC = () => {
                   }
                   style={navPillStyle}
                 >
-                  {item.label}
+                  <item.icon className="text-sm" />
+                  <span className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-300 group-hover:max-w-[140px]">
+                    {item.label}
+                  </span>
                 </NavLink>
               ))}
             </nav>
