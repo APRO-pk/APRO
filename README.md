@@ -1,6 +1,6 @@
 # APRO
 
-This website is a static Vite + React app and is ready to deploy on Cloudflare Pages.
+This website is a static Vite + React app and is ready to deploy on Cloudflare.
 
 ## Build
 
@@ -11,12 +11,15 @@ npm run build
 
 Production output is generated in `dist/`.
 
-## Cloudflare Pages Setup
+## Cloudflare Setup
 
-Point Cloudflare Pages at this `APRO` folder and use:
+This repo now includes [wrangler.jsonc](/F:/APRO/apro-hub/APRO/wrangler.jsonc) for Cloudflare Workers Builds / static asset deployment.
+
+Point Cloudflare at this `APRO` folder and use:
 
 - Build command: `npm run build`
-- Build output directory: `dist`
+
+Cloudflare will read the built output from `dist` through the Wrangler config.
 
 ## Environment Variables
 
@@ -32,4 +35,4 @@ Development-only variables currently present in the project:
 
 ## Routing
 
-The app uses `HashRouter`, so it does not rely on Netlify redirect rules for client-side routing.
+The app currently uses `HashRouter`, so route refreshes already work without server-side path handling. The Wrangler SPA fallback is still configured for future flexibility.
