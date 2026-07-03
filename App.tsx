@@ -1,6 +1,7 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { CurrencyProvider } from './src/context/CurrencyContext';
 import Home from './pages/Home';
 import About from './pages/About';
 import Events from './pages/Events';
@@ -27,62 +28,64 @@ import AproWorks from './pages/AproWorks';
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<Home />} />
-          <Route path="apro-works" element={<AproWorks />} />
-          <Route path="about" element={<About />} />
-          <Route path="events" element={<Events />} />
-          <Route path="resources" element={<Resources />} />
-          <Route path="contact" element={<Contact />} />
-          <Route path="membership" element={<Membership />} />
-          <Route path="legal" element={<Legal />} />
-          <Route path="student" element={<StudentApplication />} />
-          <Route path="chapter" element={<ChapterApplication />} />
-          <Route path="join" element={<JoinAproApplication />} />
-          <Route path="admin" element={<AdminLogin />} />
-          <Route path="login" element={<UserLogin />} />
-          <Route path="reset-password" element={<ResetPassword />} />
-          <Route path="feedback" element={<FeedbackHub />} />
-          <Route
-            path="/admin/dashboard"
-            element={
-              <ProtectedAdminRoute>
-                <AdminDashboard />
-              </ProtectedAdminRoute>
-            } />
+      <CurrencyProvider>
+        <Routes>
+          <Route path="/" element={<Layout />}>
+            <Route index element={<Home />} />
+            <Route path="apro-works" element={<AproWorks />} />
+            <Route path="about" element={<About />} />
+            <Route path="events" element={<Events />} />
+            <Route path="resources" element={<Resources />} />
+            <Route path="contact" element={<Contact />} />
+            <Route path="membership" element={<Membership />} />
+            <Route path="legal" element={<Legal />} />
+            <Route path="student" element={<StudentApplication />} />
+            <Route path="chapter" element={<ChapterApplication />} />
+            <Route path="join" element={<JoinAproApplication />} />
+            <Route path="admin" element={<AdminLogin />} />
+            <Route path="login" element={<UserLogin />} />
+            <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="feedback" element={<FeedbackHub />} />
             <Route
-              path="/admin/students"
+              path="/admin/dashboard"
               element={
                 <ProtectedAdminRoute>
-                  <StudentApplicationsPage />
+                  <AdminDashboard />
                 </ProtectedAdminRoute>
-              }
-              />
+              } />
               <Route
-                path="/admin/chapters"
+                path="/admin/students"
                 element={
                   <ProtectedAdminRoute>
-                    <ChapterApplicationsPage />
+                    <StudentApplicationsPage />
                   </ProtectedAdminRoute>
-                } />
+                }
+                />
                 <Route
-                path="/admin/careers"
-                element={
-                  <ProtectedAdminRoute>
-                    <CareerApplicationsPage />
-                  </ProtectedAdminRoute>
-                } />
-                <Route
-                  path="/admin/feedback"
+                  path="/admin/chapters"
                   element={
                     <ProtectedAdminRoute>
-                      <AdminFeedback />
+                      <ChapterApplicationsPage />
                     </ProtectedAdminRoute>
                   } />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Route>
-      </Routes>
+                  <Route
+                  path="/admin/careers"
+                  element={
+                    <ProtectedAdminRoute>
+                      <CareerApplicationsPage />
+                    </ProtectedAdminRoute>
+                  } />
+                  <Route
+                    path="/admin/feedback"
+                    element={
+                      <ProtectedAdminRoute>
+                        <AdminFeedback />
+                      </ProtectedAdminRoute>
+                    } />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </CurrencyProvider>
     </Router>
   );
 }

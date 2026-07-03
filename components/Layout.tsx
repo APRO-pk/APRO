@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Instagram, Menu, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import { CurrencySelector } from "../src/components/CurrencySelector";
 import { NAV_ITEMS } from "../types";
 import { supabase } from "../src/lib/supabase";
 import logo from "../assets/logo.png";
@@ -23,6 +24,7 @@ export const Layout: React.FC = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,27 +66,31 @@ export const Layout: React.FC = () => {
   }, []);
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#05070d] text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-white">
       <style>{`
         @keyframes aproShellGlow {
           0%, 100% { opacity: 0.45; transform: translate3d(0, 0, 0) scale(1); }
           50% { opacity: 0.75; transform: translate3d(0, -8px, 0) scale(1.03); }
         }
-        @keyframes navRainbow {
+        @keyframes navRainbowShift {
           0% { background-position: 0% 50%; }
           100% { background-position: 200% 50%; }
         }
-        @keyframes dropdownFadeIn {
-          0% { opacity: 0; transform: translateY(-6px) scale(0.96); }
+        @keyframes tooltipIn {
+          0% { opacity: 0; transform: translateY(-4px) scale(0.95); }
           100% { opacity: 1; transform: translateY(0) scale(1); }
         }
-        .nav-rainbow-active {
-          border-color: transparent !important;
-          background-image: linear-gradient(180deg, rgba(132,97,255,0.22), rgba(98,62,192,0.14)), linear-gradient(90deg, #A07CFE, #FE8FB5, #FFBE7B, #57E0A0, #60A5FA, #A07CFE) !important;
-          background-origin: padding-box, border-box !important;
-          background-repeat: no-repeat !important;
-          background-size: 100% 100%, 200% 100% !important;
-          animation: navRainbow 3s linear infinite !important;
+        @keyframes dropdownFadeIn {
+          0% { opacity: 0; transform: translateY(-4px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .nav-rainbow-glow {
+          filter: drop-shadow(0 0 6px rgba(160,124,254,0.5)) drop-shadow(0 0 14px rgba(254,143,181,0.3)) drop-shadow(0 0 22px rgba(255,190,123,0.2));
+        }
+        .nav-rainbow-dot {
+          background: linear-gradient(90deg, #A07CFE, #FE8FB5, #FFBE7B, #57E0A0, #60A5FA);
+          background-size: 200% 100%;
+          animation: navRainbowShift 3s linear infinite;
         }
       `}</style>
 
@@ -133,40 +139,41 @@ export const Layout: React.FC = () => {
               </div>
 
               <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.38em] text-slate-400">
-                  Pakistan Aerospace
-                </div>
                 <div className="truncate text-xl font-bold tracking-[-0.03em] text-white md:text-2xl">
                   APRO
                 </div>
               </div>
             </NavLink>
 
-            <nav className="hidden items-center gap-1 lg:flex">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `group flex items-center gap-1.5 rounded-full border px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all duration-300 ${
-                      isActive && item.path === "/apro-works"
-                        ? "nav-rainbow-active"
-                        : isActive
-                        ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
-                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                    }`
-                  }
-                  style={navPillStyle}
-                >
-                  <item.icon className="text-sm" />
-                  <span className="max-w-0 overflow-hidden whitespace-nowrap transition-all duration-300 group-hover:max-w-[140px]">
-                    {item.label}
-                  </span>
-                </NavLink>
-              ))}
+            <nav className="hidden items-center gap-2 lg:flex">
+              {NAV_ITEMS.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={`group relative flex items-center justify-center p-1.5 transition-all duration-300 ${
+                      isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <item.icon className={`text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                    {isActive && (
+                      <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
+                        item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
+                      }`} />
+                    )}
+                    <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+                      <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
+                        {item.label}
+                      </div>
+                    </div>
+                  </NavLink>
+                );
+              })}
             </nav>
 
             <div className="hidden items-center gap-3 lg:flex">
+              <CurrencySelector />
               {user ? (
                 <div className="relative" ref={menuRef}>
                   <button
@@ -219,25 +226,25 @@ export const Layout: React.FC = () => {
           {isMenuOpen && (
             <nav className="mt-4 border-t border-white/10 pt-4 lg:hidden">
               <div className="space-y-2">
-                {NAV_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `block rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
-                        isActive && item.path === "/apro-works"
-                          ? "nav-rainbow-active"
-                          : isActive
+                {NAV_ITEMS.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
+                        isActive
                           ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
                           : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                      }`
-                    }
-                    style={navPillStyle}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
+                      }`}
+                      style={navPillStyle}
+                    >
+                      <item.icon className={`text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                      {item.label}
+                    </NavLink>
+                  );
+                })}
               </div>
 
               <div className="mt-4 border-t border-white/10 pt-4">

@@ -1,13 +1,13 @@
 import { type IconType } from "react-icons";
 import {
-  IoHomeOutline,
-  IoDesktopOutline,
-  IoInformationCircleOutline,
-  IoCalendarOutline,
-  IoChatbubbleOutline,
-  IoCallOutline,
-  IoPeopleOutline,
-  IoDocumentTextOutline,
+  IoHome,
+  IoDesktop,
+  IoInformationCircle,
+  IoCalendar,
+  IoChatbubble,
+  IoCall,
+  IoPeople,
+  IoDocumentText,
 } from "react-icons/io5";
 
 export interface NavItem {
@@ -17,12 +17,12 @@ export interface NavItem {
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Home", path: "/", icon: IoHomeOutline },
-  { label: "APRO Works", path: "/apro-works", icon: IoDesktopOutline },
-  { label: "About APRO", path: "/about", icon: IoInformationCircleOutline },
-  { label: "Events", path: "/events", icon: IoCalendarOutline },
-  { label: "Feedback", path: "/feedback", icon: IoChatbubbleOutline },
-  { label: "Contact", path: "/contact", icon: IoCallOutline },
-  { label: "Membership", path: "/membership", icon: IoPeopleOutline },
-  { label: "Legal", path: "/legal", icon: IoDocumentTextOutline },
+  { label: "Home", path: "/", icon: IoHome },
+  { label: "APRO Works", path: "/apro-works", icon: IoDesktop },
+  { label: "About APRO", path: "/about", icon: IoInformationCircle },
+  { label: "Events", path: "/events", icon: IoCalendar },
+  { label: "Feedback", path: "/feedback", icon: IoChatbubble },
+  { label: "Contact", path: "/contact", icon: IoCall },
+  { label: "Membership", path: "/membership", icon: IoPeople },
+  { label: "Legal", path: "/legal", icon: IoDocumentText },
 ];
