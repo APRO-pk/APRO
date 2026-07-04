@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { NavLink, Outlet } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Instagram, Menu, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
+import { CurrencySelector } from "../src/components/CurrencySelector";
 import { NAV_ITEMS } from "../types";
 import { supabase } from "../src/lib/supabase";
 import logo from "../assets/logo.png";
@@ -20,7 +21,11 @@ const navPillStyle: React.CSSProperties = {
 
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const getSession = async () => {
@@ -31,8 +36,11 @@ export const Layout: React.FC = () => {
     getSession();
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
         setUser(session?.user ?? null);
+        if (event === "PASSWORD_RECOVERY") {
+          navigate("/reset-password");
+        }
       }
     );
 
@@ -44,14 +52,45 @@ export const Layout: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsMenuOpen(false);
+    setUserMenuOpen(false);
   };
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#05070d] text-white">
+    <div className="relative min-h-screen bg-[#05070d] text-white">
       <style>{`
         @keyframes aproShellGlow {
           0%, 100% { opacity: 0.45; transform: translate3d(0, 0, 0) scale(1); }
           50% { opacity: 0.75; transform: translate3d(0, -8px, 0) scale(1.03); }
+        }
+        @keyframes navRainbowShift {
+          0% { background-position: 0% 50%; }
+          100% { background-position: 200% 50%; }
+        }
+        @keyframes tooltipIn {
+          0% { opacity: 0; transform: translateY(-4px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes dropdownFadeIn {
+          0% { opacity: 0; transform: translateY(-4px) scale(0.95); }
+          100% { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .nav-rainbow-glow {
+          filter: drop-shadow(0 0 6px rgba(160,124,254,0.5)) drop-shadow(0 0 14px rgba(254,143,181,0.3)) drop-shadow(0 0 22px rgba(255,190,123,0.2));
+        }
+        .nav-rainbow-dot {
+          background: linear-gradient(90deg, #A07CFE, #FE8FB5, #FFBE7B, #57E0A0, #60A5FA);
+          background-size: 200% 100%;
+          animation: navRainbowShift 3s linear infinite;
         }
       `}</style>
 
@@ -100,9 +139,6 @@ export const Layout: React.FC = () => {
               </div>
 
               <div className="min-w-0">
-                <div className="text-[10px] uppercase tracking-[0.38em] text-slate-400">
-                  Pakistan Aerospace
-                </div>
                 <div className="truncate text-xl font-bold tracking-[-0.03em] text-white md:text-2xl">
                   APRO
                 </div>
@@ -110,46 +146,64 @@ export const Layout: React.FC = () => {
             </NavLink>
 
             <nav className="hidden items-center gap-2 lg:flex">
-              {NAV_ITEMS.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  className={({ isActive }) =>
-                    `rounded-full border px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] transition duration-300 ${
-                      isActive
-                        ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
-                        : "border-white/8 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                    }`
-                  }
-                  style={navPillStyle}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
+              {NAV_ITEMS.map((item) => {
+                const isActive = location.pathname === item.path;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={`group relative flex items-center justify-center p-1.5 transition-all duration-300 ${
+                      isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <item.icon className={`text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                    {isActive && (
+                      <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
+                        item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
+                      }`} />
+                    )}
+                    <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+                      <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
+                        {item.label}
+                      </div>
+                    </div>
+                  </NavLink>
+                );
+              })}
             </nav>
 
             <div className="hidden items-center gap-3 lg:flex">
+              <CurrencySelector />
               {user ? (
-                <>
-                  <div
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-right"
-                    style={navPillStyle}
-                  >
-                    <div className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
-                      Signed In
-                    </div>
-                    <div className="max-w-[160px] truncate text-sm font-semibold text-white">
-                      {user.email?.split("@")[0] || user.email}
-                    </div>
-                  </div>
+                <div className="relative" ref={menuRef}>
                   <button
-                    onClick={handleLogout}
-                    className="rounded-full border border-white/12 bg-white/[0.04] px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.22em] text-slate-100 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                    onClick={() => setUserMenuOpen((v) => !v)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-white transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
                     style={navPillStyle}
                   >
-                    Logout
+                    {user.email?.split("@")[0] || user.email}
                   </button>
-                </>
+                  {userMenuOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1120] shadow-xl"
+                      style={{ animation: "dropdownFadeIn 0.15s ease-out" }}
+                    >
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="block px-4 py-3 text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                      >
+                        Dashboard
+                      </Link>
+                      <button
+                        onClick={handleLogout}
+                        className="block w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-white/[0.06]"
+                      >
+                        Log out
+                      </button>
+                    </div>
+                  )}
+                </div>
               ) : (
                 <NavLink
                   to="/login"
@@ -172,23 +226,25 @@ export const Layout: React.FC = () => {
           {isMenuOpen && (
             <nav className="mt-4 border-t border-white/10 pt-4 lg:hidden">
               <div className="space-y-2">
-                {NAV_ITEMS.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `block rounded-2xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
+                {NAV_ITEMS.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <NavLink
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsMenuOpen(false)}
+                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
                         isActive
                           ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
                           : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                      }`
-                    }
-                    style={navPillStyle}
-                  >
-                    {item.label}
-                  </NavLink>
-                ))}
+                      }`}
+                      style={navPillStyle}
+                    >
+                      <item.icon className={`text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                      {item.label}
+                    </NavLink>
+                  );
+                })}
               </div>
 
               <div className="mt-4 border-t border-white/10 pt-4">
@@ -198,19 +254,24 @@ export const Layout: React.FC = () => {
                       className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3"
                       style={navPillStyle}
                     >
-                      <div className="text-[10px] uppercase tracking-[0.28em] text-slate-500">
-                        Signed In
-                      </div>
-                      <div className="mt-1 truncate text-sm font-semibold text-white">
+                      <div className="truncate text-sm font-semibold text-white">
                         {user.email?.split("@")[0] || user.email}
                       </div>
                     </div>
-                    <button
-                      onClick={handleLogout}
-                      className="w-full rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-100 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                    <Link
+                      to="/admin/dashboard"
+                      onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                      className="block w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition duration-300 hover:bg-white/[0.08]"
                       style={navPillStyle}
                     >
-                      Logout
+                      Dashboard
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-red-400 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                      style={navPillStyle}
+                    >
+                      Log out
                     </button>
                   </div>
                 ) : (

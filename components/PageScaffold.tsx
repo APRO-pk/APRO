@@ -43,7 +43,7 @@ type CalloutProps = {
 };
 
 export const PageScaffold: React.FC<BaseProps> = ({ children, className = "" }) => (
-  <div className={`relative overflow-hidden pb-16 text-white ${className}`}>
+  <div className={`relative pb-16 text-white ${className}`}>
     <div className="pointer-events-none absolute inset-0">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_16%_12%,rgba(123,44,191,0.16),transparent_18%),radial-gradient(circle_at_84%_14%,rgba(73,121,255,0.1),transparent_20%),linear-gradient(180deg,#060912_0%,#05070d_100%)]" />
       <div
