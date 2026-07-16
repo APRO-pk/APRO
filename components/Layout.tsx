@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-do
 import { Instagram, Menu, X } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
+import type { NavItem } from "../types";
 import { NAV_ITEMS } from "../types";
 import { supabase } from "../src/lib/supabase";
 import logo from "../assets/logo.png";
@@ -18,6 +19,23 @@ const navPillStyle: React.CSSProperties = {
   boxShadow:
     "inset 1px 1px 0 rgba(255,255,255,0.05), inset -1px -1px 0 rgba(0,0,0,0.42), 0 14px 26px rgba(4,7,16,0.22)",
 };
+
+function isNavItemActive(item: NavItem, pathname: string) {
+  return !item.external && pathname === item.path;
+}
+
+function renderNavVisual(item: NavItem, className: string) {
+  if (item.imageIcon) {
+    return <img src={item.imageIcon} alt="" className={`${className} h-[1em] w-[1em] object-contain`} />;
+  }
+
+  if (!item.icon) {
+    return null;
+  }
+
+  const Icon = item.icon;
+  return <Icon className={className} />;
+}
 
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -147,16 +165,38 @@ export const Layout: React.FC = () => {
 
             <nav className="hidden items-center gap-2 lg:flex">
               {NAV_ITEMS.map((item) => {
-                const isActive = location.pathname === item.path;
+                const isActive = isNavItemActive(item, location.pathname);
+                const navItemClassName = `group relative flex items-center justify-center p-1.5 transition-all duration-300 ${
+                  isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
+                }`;
+                const iconClassName = `text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
+
+                if (item.external) {
+                  return (
+                    <a
+                      key={item.path}
+                      href={item.path}
+                      target="_blank"
+                      rel="noreferrer"
+                      className={navItemClassName}
+                    >
+                      {renderNavVisual(item, iconClassName)}
+                      <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+                        <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
+                          {item.label}
+                        </div>
+                      </div>
+                    </a>
+                  );
+                }
+
                 return (
                   <NavLink
                     key={item.path}
                     to={item.path}
-                    className={`group relative flex items-center justify-center p-1.5 transition-all duration-300 ${
-                      isActive ? "text-white" : "text-slate-400 hover:text-slate-200"
-                    }`}
+                    className={navItemClassName}
                   >
-                    <item.icon className={`text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                    {renderNavVisual(item, iconClassName)}
                     {isActive && (
                       <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
                         item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
@@ -227,20 +267,40 @@ export const Layout: React.FC = () => {
             <nav className="mt-4 border-t border-white/10 pt-4 lg:hidden">
               <div className="space-y-2">
                 {NAV_ITEMS.map((item) => {
-                  const isActive = location.pathname === item.path;
+                  const isActive = isNavItemActive(item, location.pathname);
+                  const mobileItemClassName = `flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
+                    isActive
+                      ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                  }`;
+                  const iconClassName = `text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
+
+                  if (item.external) {
+                    return (
+                      <a
+                        key={item.path}
+                        href={item.path}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={() => setIsMenuOpen(false)}
+                        className={mobileItemClassName}
+                        style={navPillStyle}
+                      >
+                        {renderNavVisual(item, iconClassName)}
+                        {item.label}
+                      </a>
+                    );
+                  }
+
                   return (
                     <NavLink
                       key={item.path}
                       to={item.path}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
-                        isActive
-                          ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
-                          : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                      }`}
+                      className={mobileItemClassName}
                       style={navPillStyle}
                     >
-                      <item.icon className={`text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`} />
+                      {renderNavVisual(item, iconClassName)}
                       {item.label}
                     </NavLink>
                   );
