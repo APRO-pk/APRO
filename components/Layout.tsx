@@ -7,6 +7,7 @@ import type { NavItem } from "../types";
 import { NAV_ITEMS } from "../types";
 import { supabase } from "../src/lib/supabase";
 import logo from "../assets/logo.png";
+import launchpadIcon from "../assets/launchpad.png";
 
 const shellPanelStyle: React.CSSProperties = {
   background:
@@ -35,6 +36,46 @@ function renderNavVisual(item: NavItem, className: string) {
 
   const Icon = item.icon;
   return <Icon className={className} />;
+}
+
+function LaunchpadLink({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
+  if (mobile) {
+    return (
+      <a
+        href="https://launchpad.apro.pk"
+        target="_blank"
+        rel="noreferrer"
+        onClick={onNavigate}
+        className="flex items-center gap-3 rounded-xl border border-[#f0c27b]/24 bg-[linear-gradient(180deg,rgba(241,169,78,0.18),rgba(140,76,22,0.12))] px-4 py-3 text-sm font-semibold text-[#ffe3bb] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(68,28,4,0.34),0_16px_30px_rgba(45,21,4,0.24)] transition duration-300 hover:border-[#f0c27b]/36 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.24),rgba(140,76,22,0.16))] hover:text-white"
+      >
+        <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[8px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.25)]" />
+        Launchpad
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href="https://launchpad.apro.pk"
+      target="_blank"
+      rel="noreferrer"
+      className="group relative ml-2 flex items-center gap-2 rounded-full border border-[#f0c27b]/20 bg-[linear-gradient(180deg,rgba(241,169,78,0.14),rgba(124,69,21,0.1))] px-3 py-2 text-[#ffdca9] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(55,26,5,0.34),0_16px_28px_rgba(38,19,4,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#f0c27b]/34 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.2),rgba(124,69,21,0.14))] hover:text-white"
+    >
+      <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[10px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.28)]" />
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em]">Launchpad</span>
+      <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+        <div className="whitespace-nowrap rounded-xl border border-[#f0c27b]/16 bg-[#18110a]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffe3bb] shadow-xl backdrop-blur-md">
+          Open Launchpad
+        </div>
+      </div>
+    </a>
+  );
 }
 
 export const Layout: React.FC = () => {
@@ -171,25 +212,6 @@ export const Layout: React.FC = () => {
                 }`;
                 const iconClassName = `text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
 
-                if (item.external) {
-                  return (
-                    <a
-                      key={item.path}
-                      href={item.path}
-                      target="_blank"
-                      rel="noreferrer"
-                      className={navItemClassName}
-                    >
-                      {renderNavVisual(item, iconClassName)}
-                      <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
-                        <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
-                          {item.label}
-                        </div>
-                      </div>
-                    </a>
-                  );
-                }
-
                 return (
                   <NavLink
                     key={item.path}
@@ -210,6 +232,7 @@ export const Layout: React.FC = () => {
                   </NavLink>
                 );
               })}
+              <LaunchpadLink />
             </nav>
 
             <div className="hidden items-center gap-3 lg:flex">
@@ -275,23 +298,6 @@ export const Layout: React.FC = () => {
                   }`;
                   const iconClassName = `text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
 
-                  if (item.external) {
-                    return (
-                      <a
-                        key={item.path}
-                        href={item.path}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => setIsMenuOpen(false)}
-                        className={mobileItemClassName}
-                        style={navPillStyle}
-                      >
-                        {renderNavVisual(item, iconClassName)}
-                        {item.label}
-                      </a>
-                    );
-                  }
-
                   return (
                     <NavLink
                       key={item.path}
@@ -305,6 +311,7 @@ export const Layout: React.FC = () => {
                     </NavLink>
                   );
                 })}
+                <LaunchpadLink mobile onNavigate={() => setIsMenuOpen(false)} />
               </div>
 
               <div className="mt-4 border-t border-white/10 pt-4">
