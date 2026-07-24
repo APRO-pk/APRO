@@ -168,7 +168,7 @@ const EventRegister: React.FC = () => {
             </div>
           )}
           {event.header_type === "html" && event.header_content && (
-            <div className="mb-6 w-full rounded-2xl overflow-hidden" dangerouslySetInnerHTML={{ __html: event.header_content }} />
+            <div className="-mx-8 md:-mx-10 -mt-8 md:-mt-10 mb-6 rounded-b-[36px] overflow-hidden" dangerouslySetInnerHTML={{ __html: event.header_content }} />
           )}
 
           <div className="mb-8">
