@@ -87,6 +87,10 @@ const EventRegister: React.FC = () => {
           respondent_email: values["_email"] || "",
         });
 
+      const displayFieldTypes = ["heading", "image", "separator", "rich_html"];
+
+// ...
+
       if (respErr) {
         setSubmitError(respErr?.message || "Failed to submit");
         setSubmitting(false);
@@ -94,7 +98,7 @@ const EventRegister: React.FC = () => {
       }
 
       const inserts = fields
-        .filter((f) => values[f.id] !== undefined && values[f.id] !== null)
+        .filter((f) => !["heading", "image", "separator", "rich_html"].includes(f.field_type) && values[f.id] !== undefined && values[f.id] !== null)
         .map((f) => ({
           response_id: responseId,
           field_id: f.id,
@@ -248,6 +252,8 @@ const FormFieldRenderer: React.FC<{
 }> = ({ field, value, error, onChange }) => {
   const baseInput = "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28";
 
+  const displayOnly = ["heading", "image", "separator", "rich_html"].includes(field.field_type);
+
   const render = () => {
     switch (field.field_type) {
       case "short_text":
@@ -280,14 +286,14 @@ const FormFieldRenderer: React.FC<{
         return (
           <select className={baseInput} value={value || ""} onChange={(e) => onChange(e.target.value)}>
             <option value="">{field.placeholder || "Select…"}</option>
-            {(field.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+            {(field.options || []).filter(Boolean).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
           </select>
         );
 
       case "radio_buttons":
         return (
           <div className="space-y-2">
-            {(field.options || []).map((opt) => (
+            {(field.options || []).filter(Boolean).map((opt) => (
               <label key={opt} className="flex items-center gap-3 cursor-pointer">
                 <input type="radio" name={field.id} value={opt} checked={value === opt} onChange={() => onChange(opt)}
                   className="accent-violet-500" />
@@ -300,7 +306,7 @@ const FormFieldRenderer: React.FC<{
       case "checkboxes":
         return (
           <div className="space-y-2">
-            {(field.options || []).map((opt) => {
+            {(field.options || []).filter(Boolean).map((opt) => {
               const checked = Array.isArray(value) && value.includes(opt);
               return (
                 <label key={opt} className="flex items-center gap-3 cursor-pointer">
@@ -323,10 +329,32 @@ const FormFieldRenderer: React.FC<{
             onChange={(e) => onChange(e.target.files?.[0]?.name || null)} />
         );
 
+      case "heading": {
+        const level = field.heading_level || "h2";
+        const sizes: Record<string, string> = { h1: "text-4xl", h2: "text-3xl", h3: "text-2xl", h4: "text-xl" };
+        const HeadingTag = level === "h1" ? "h1" : level === "h2" ? "h2" : level === "h3" ? "h3" : "h4";
+        return <div className="mb-2"><HeadingTag className={`${sizes[level]} font-bold text-white`}>{field.label}</HeadingTag></div>;
+      }
+
+      case "image":
+        return field.image_src ? (
+          <div className="mb-2 overflow-hidden rounded-2xl" style={{ maxWidth: field.image_width || undefined, maxHeight: field.image_height || undefined }}>
+            <img src={field.image_src} alt={field.label} className="w-full" style={{ objectFit: field.image_fit || "cover", width: field.image_width || undefined, height: field.image_height || undefined }} />
+          </div>
+        ) : null;
+
+      case "separator":
+        return <hr className="my-4 border-white/10" />;
+
+      case "rich_html":
+        return field.html_content ? <div className="mb-2" dangerouslySetInnerHTML={{ __html: field.html_content }} /> : null;
+
       default:
         return <p className="text-sm text-slate-500">Unsupported field type</p>;
     }
   };
+
+  if (displayOnly) return <div>{render()}</div>;
 
   return (
     <div>
