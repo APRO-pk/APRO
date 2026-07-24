@@ -1,5 +1,5 @@
 export type EventStatus = "draft" | "open" | "closed";
-export type HeaderType = "text" | "image" | "video" | "model";
+export type HeaderType = "text" | "image" | "video" | "model" | "html";
 export type Audience = "public" | "members";
 export type FieldType =
   | "short_text" | "long_text" | "number" | "slider"

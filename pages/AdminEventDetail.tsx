@@ -283,10 +283,15 @@ const AdminEventDetail: React.FC = () => {
                 <option value="image">Image Banner</option>
                 <option value="video">Video Banner</option>
                 <option value="model">3D Model</option>
+                <option value="html">Custom HTML</option>
               </select>
             </FieldBlock>
-            <FieldBlock label="Header Content (URL or embed)">
-              <input value={event.header_content} onChange={(e) => set("header_content", e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" placeholder={event.header_type === "image" ? "https://…" : event.header_type === "video" ? "https://… or embed URL" : event.header_type === "model" ? "https://… 3D model URL" : "Leave blank"} />
+            <FieldBlock label="Header Content">
+              {event.header_type === "html" ? (
+                <textarea value={event.header_content} onChange={(e) => set("header_content", e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28 min-h-[200px] font-mono" placeholder="<div>Your custom HTML here</div>" />
+              ) : (
+                <input value={event.header_content} onChange={(e) => set("header_content", e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" placeholder={event.header_type === "image" ? "https://…" : event.header_type === "video" ? "https://… or embed URL" : event.header_type === "model" ? "https://… 3D model URL" : "Leave blank"} />
+              )}
             </FieldBlock>
           </div>
 

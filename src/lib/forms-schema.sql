@@ -16,7 +16,7 @@ CREATE TABLE IF NOT EXISTS admin_events (
   capacity      INTEGER NOT NULL DEFAULT 0,
   reg_deadline  TIMESTAMPTZ,
   status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','closed')),
-  header_type   TEXT NOT NULL DEFAULT 'text' CHECK (header_type IN ('text','image','video','model')),
+  header_type   TEXT NOT NULL DEFAULT 'text' CHECK (header_type IN ('text','image','video','model','html')),
   header_content TEXT NOT NULL DEFAULT '',
   audience      TEXT NOT NULL DEFAULT 'public' CHECK (audience IN ('public','members')),
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
