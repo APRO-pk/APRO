@@ -1,5 +1,6 @@
 export type EventStatus = "draft" | "open" | "closed";
 export type HeaderType = "text" | "image" | "video" | "model";
+export type Audience = "public" | "members";
 export type FieldType =
   | "short_text" | "long_text" | "number" | "slider"
   | "date" | "time" | "datetime"
@@ -23,6 +24,7 @@ export interface AdminEvent {
   capacity: number;
   reg_deadline: string | null;
   status: EventStatus;
+  audience: Audience;
   header_type: HeaderType;
   header_content: string;
   created_at: string;
