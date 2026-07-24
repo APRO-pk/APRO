@@ -166,7 +166,9 @@ const EventRegister: React.FC = () => {
             <h1 className="text-3xl font-bold text-white">{event.title}</h1>
             {event.description && <p className="mt-3 text-slate-300/80 leading-relaxed">{event.description}</p>}
             <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-400">
-              {event.start_date && <span>📅 {new Date(event.start_date).toLocaleDateString()}{event.end_date ? ` – ${new Date(event.end_date).toLocaleDateString()}` : ""}</span>}
+              {event.sessions?.[0]?.date && (
+                <span>📅 {event.sessions.map((s, i) => `${s.date}${s.startTime ? ` ${s.startTime}` : ""}${s.endTime ? `–${s.endTime}` : ""}`).join(", ")}</span>
+              )}
               {event.location && <span>📍 {event.location}</span>}
               {event.capacity > 0 && <span>👥 Capacity: {event.capacity}</span>}
             </div>
