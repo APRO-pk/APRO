@@ -5,14 +5,20 @@ export type FieldType =
   | "date" | "time" | "datetime"
   | "dropdown" | "checkboxes" | "radio_buttons" | "file_upload";
 
+export interface EventSession {
+  date: string;
+  startTime: string;
+  endTime: string;
+}
+
 export interface AdminEvent {
   id: string;
   admin_id: number;
   title: string;
   description: string;
   slug: string;
-  start_date: string | null;
-  end_date: string | null;
+  event_days: number;
+  sessions: EventSession[];
   location: string;
   capacity: number;
   reg_deadline: string | null;
