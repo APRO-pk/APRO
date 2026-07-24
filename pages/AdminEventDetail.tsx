@@ -118,6 +118,12 @@ const AdminEventDetail: React.FC = () => {
       field_order: order,
       options: [],
       min: null, max: null, step: null,
+      heading_level: null,
+      image_src: "",
+      image_fit: "cover",
+      image_width: null,
+      image_height: null,
+      html_content: "",
       created_at: new Date().toISOString(),
     }]);
   };
@@ -131,6 +137,12 @@ const AdminEventDetail: React.FC = () => {
       field_order: f.field_order,
       options: f.options,
       min: f.min, max: f.max, step: f.step,
+      heading_level: f.heading_level,
+      image_src: f.image_src,
+      image_fit: f.image_fit,
+      image_width: f.image_width,
+      image_height: f.image_height,
+      html_content: f.html_content,
     }).eq("id", f.id);
   };
 
@@ -362,7 +374,12 @@ const FieldEditor: React.FC<{
   isLast: boolean;
 }> = ({ field, onUpdate, onRemove, onMoveUp, onMoveDown, isFirst, isLast }) => {
   const set = (key: string, val: any) => onUpdate({ ...field, [key]: val });
-  const updateOptions = (val: string) => set("options", val.split("\n").filter((s) => s.trim()));
+  const updateOptions = (val: string) => {
+    // Split by newline or semicolon; keep empty lines for editing
+    const parts = val.includes(";") ? val.split(";") : val.split("\n");
+    set("options", parts.map((s) => s.trim()));
+  };
+  const displayOnly = ["heading", "image", "separator", "rich_html"];
 
   return (
     <SurfacePanel className="p-5">
@@ -379,14 +396,16 @@ const FieldEditor: React.FC<{
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-xs text-slate-400">
-              <input type="checkbox" checked={field.required} onChange={(e) => set("required", e.target.checked)} className="accent-violet-500" />
-              Required
-            </label>
-            <input value={field.placeholder} onChange={(e) => set("placeholder", e.target.value)}
-              className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white outline-none focus:border-violet-300/28 w-48" placeholder="Placeholder" />
-          </div>
+          {!displayOnly.includes(field.field_type) && (
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 text-xs text-slate-400">
+                <input type="checkbox" checked={field.required} onChange={(e) => set("required", e.target.checked)} className="accent-violet-500" />
+                Required
+              </label>
+              <input value={field.placeholder} onChange={(e) => set("placeholder", e.target.value)}
+                className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white outline-none focus:border-violet-300/28 w-48" placeholder="Placeholder" />
+            </div>
+          )}
 
           {["dropdown", "checkboxes", "radio_buttons"].includes(field.field_type) && (
             <div>
@@ -403,6 +422,49 @@ const FieldEditor: React.FC<{
               {field.field_type === "slider" && (
                 <label className="text-xs text-slate-400">Step <input type="number" step="any" value={field.step ?? ""} onChange={(e) => set("step", e.target.value ? Number(e.target.value) : null)} className="ml-1 w-20 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none" /></label>
               )}
+            </div>
+          )}
+
+          {field.field_type === "heading" && (
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="text-xs text-slate-400">Level
+                <select value={field.heading_level || "h2"} onChange={(e) => set("heading_level", e.target.value)} className="ml-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none">
+                  <option value="h1">Heading 1</option>
+                  <option value="h2">Heading 2</option>
+                  <option value="h3">Heading 3</option>
+                  <option value="h4">Heading 4</option>
+                </select>
+              </label>
+            </div>
+          )}
+
+          {field.field_type === "image" && (
+            <div className="space-y-3">
+              <input value={field.image_src} onChange={(e) => set("image_src", e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none focus:border-violet-300/28" placeholder="Image URL" />
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="text-xs text-slate-400">Fit
+                  <select value={field.image_fit || "cover"} onChange={(e) => set("image_fit", e.target.value)} className="ml-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none">
+                    <option value="cover">Cover (zoom)</option>
+                    <option value="contain">Contain (fit)</option>
+                    <option value="fill">Stretch</option>
+                    <option value="none">None (original)</option>
+                  </select>
+                </label>
+                <label className="text-xs text-slate-400">Width (px)
+                  <input type="number" value={field.image_width ?? ""} onChange={(e) => set("image_width", e.target.value ? Number(e.target.value) : null)} className="ml-1 w-20 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none" />
+                </label>
+                <label className="text-xs text-slate-400">Height (px)
+                  <input type="number" value={field.image_height ?? ""} onChange={(e) => set("image_height", e.target.value ? Number(e.target.value) : null)} className="ml-1 w-20 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none" />
+                </label>
+              </div>
+            </div>
+          )}
+
+          {field.field_type === "rich_html" && (
+            <div>
+              <textarea value={field.html_content || ""} onChange={(e) => set("html_content", e.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-300/28 min-h-[120px] resize-y" placeholder="<div>Your custom HTML here</div>" />
             </div>
           )}
         </div>
