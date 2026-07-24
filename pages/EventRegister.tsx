@@ -71,17 +71,18 @@ const EventRegister: React.FC = () => {
     setSubmitError("");
 
     try {
-      const { data: resp, error: respErr } = await supabase
+      const responseId = crypto.randomUUID();
+
+      const { error: respErr } = await supabase
         .from("form_responses")
         .insert({
+          id: responseId,
           event_id: event.id,
           respondent_name: values["_name"] || "",
           respondent_email: values["_email"] || "",
-        })
-        .select("id")
-        .single();
+        });
 
-      if (respErr || !resp) {
+      if (respErr) {
         setSubmitError(respErr?.message || "Failed to submit");
         setSubmitting(false);
         return;
@@ -90,7 +91,7 @@ const EventRegister: React.FC = () => {
       const inserts = fields
         .filter((f) => values[f.id] !== undefined && values[f.id] !== null)
         .map((f) => ({
-          response_id: resp.id,
+          response_id: responseId,
           field_id: f.id,
           value: JSON.stringify(values[f.id]),
         }));

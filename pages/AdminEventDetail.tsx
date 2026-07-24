@@ -19,6 +19,7 @@ const AdminEventDetail: React.FC = () => {
     sessions: [{ date: "", startTime: "", endTime: "" }],
     location: "", capacity: 0,
     reg_deadline: null, status: "draft",
+    audience: "public",
     header_type: "text", header_content: "",
     created_at: "", updated_at: "",
   });
@@ -61,6 +62,7 @@ const AdminEventDetail: React.FC = () => {
         capacity: event.capacity,
         reg_deadline: event.reg_deadline,
         status: event.status,
+        audience: event.audience,
         header_type: event.header_type,
         header_content: event.header_content,
         admin_id: adminRow.id,
@@ -264,6 +266,12 @@ const AdminEventDetail: React.FC = () => {
                 <option value="draft">Draft</option>
                 <option value="open">Open</option>
                 <option value="closed">Closed</option>
+              </select>
+            </FieldBlock>
+            <FieldBlock label="Audience">
+              <select value={event.audience} onChange={(e) => set("audience", e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28">
+                <option value="public">Public (anyone can register)</option>
+                <option value="members">Members only</option>
               </select>
             </FieldBlock>
           </div>
