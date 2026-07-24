@@ -218,6 +218,7 @@ const EventRegister: React.FC = () => {
                     value={values[f.id]}
                     error={errors[f.id]}
                     onChange={(val) => set(f.id, val)}
+                    eventSlug={event?.slug || ""}
                   />
                 ))}
 
@@ -250,7 +251,8 @@ const FormFieldRenderer: React.FC<{
   value: any;
   error?: string;
   onChange: (val: any) => void;
-}> = ({ field, value, error, onChange }) => {
+  eventSlug: string;
+}> = ({ field, value, error, onChange, eventSlug }) => {
   const baseInput = "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28";
 
   const displayOnly = ["text", "image", "separator", "rich_html"].includes(field.field_type);
@@ -335,7 +337,7 @@ const FormFieldRenderer: React.FC<{
                 setUploading(field.id);
                 try {
                   const ext = file.name.split(".").pop();
-                  const path = `${event!.slug}/${field.id}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+                  const path = `${eventSlug}/${field.id}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
                   const { error } = await supabase.storage.from("form_uploads").upload(path, file);
                   if (error) { onChange(null); return; }
                   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
