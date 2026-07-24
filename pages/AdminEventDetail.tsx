@@ -15,7 +15,9 @@ const AdminEventDetail: React.FC = () => {
   const [tab, setTab] = useState<TabId>(isNew ? "details" : "details");
   const [event, setEvent] = useState<AdminEvent>({
     id: "", admin_id: 0, title: "", description: "", slug: "",
-    start_date: null, end_date: null, location: "", capacity: 0,
+    event_days: 1,
+    sessions: [{ date: "", startTime: "", endTime: "" }],
+    location: "", capacity: 0,
     reg_deadline: null, status: "draft",
     header_type: "text", header_content: "",
     created_at: "", updated_at: "",
@@ -50,9 +52,18 @@ const AdminEventDetail: React.FC = () => {
       if (!adminRow) { setSaveMsg("Admin not found"); setSaving(false); return; }
 
       const { data: created, error } = await supabase.from("admin_events").insert({
-        ...event,
+        title: event.title,
+        description: event.description,
+        slug: event.slug,
+        event_days: event.event_days,
+        sessions: event.sessions,
+        location: event.location,
+        capacity: event.capacity,
+        reg_deadline: event.reg_deadline,
+        status: event.status,
+        header_type: event.header_type,
+        header_content: event.header_content,
         admin_id: adminRow.id,
-        updated_at: new Date().toISOString(),
       }).select("id").single();
 
       if (error || !created) {
@@ -68,8 +79,8 @@ const AdminEventDetail: React.FC = () => {
       title: event.title,
       description: event.description,
       slug: event.slug,
-      start_date: event.start_date,
-      end_date: event.end_date,
+      event_days: event.event_days,
+      sessions: event.sessions,
       location: event.location,
       capacity: event.capacity,
       reg_deadline: event.reg_deadline,
@@ -195,17 +206,51 @@ const AdminEventDetail: React.FC = () => {
             <textarea value={event.description} onChange={(e) => set("description", e.target.value)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28 min-h-[80px] resize-y" />
           </FieldBlock>
 
-          <div className="grid gap-5 md:grid-cols-3">
-            <FieldBlock label="Start Date">
-              <input type="datetime-local" value={event.start_date ? event.start_date.slice(0, 16) : ""} onChange={(e) => set("start_date", e.target.value ? new Date(e.target.value).toISOString() : null)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
-            </FieldBlock>
-            <FieldBlock label="End Date">
-              <input type="datetime-local" value={event.end_date ? event.end_date.slice(0, 16) : ""} onChange={(e) => set("end_date", e.target.value ? new Date(e.target.value).toISOString() : null)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+          <div className="grid gap-5 md:grid-cols-2">
+            <FieldBlock label="Number of Days">
+              <input type="number" min={1} max={30} value={event.event_days}
+                onChange={(e) => {
+                  const n = Math.max(1, Number(e.target.value));
+                  const s = event.sessions;
+                  const sessions = Array.from({ length: n }, (_, i) => s[i] || { date: "", startTime: "", endTime: "" });
+                  set("sessions", sessions);
+                  set("event_days", n);
+                }}
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
             </FieldBlock>
             <FieldBlock label="Registration Deadline">
-              <input type="datetime-local" value={event.reg_deadline ? event.reg_deadline.slice(0, 16) : ""} onChange={(e) => set("reg_deadline", e.target.value ? new Date(e.target.value).toISOString() : null)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+              <input type="date" value={event.reg_deadline ? event.reg_deadline.slice(0, 10) : ""} onChange={(e) => set("reg_deadline", e.target.value ? new Date(e.target.value).toISOString() : null)} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
             </FieldBlock>
           </div>
+
+          {event.sessions.map((session, i) => (
+            <div key={i} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-slate-400">Day {i + 1}</p>
+              <div className="grid gap-4 md:grid-cols-3">
+                <FieldBlock label="Date">
+                  <input type="date" value={session.date} onChange={(e) => {
+                    const next = [...event.sessions];
+                    next[i] = { ...next[i], date: e.target.value };
+                    set("sessions", next);
+                  }} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+                </FieldBlock>
+                <FieldBlock label="Start Time">
+                  <input type="time" value={session.startTime} onChange={(e) => {
+                    const next = [...event.sessions];
+                    next[i] = { ...next[i], startTime: e.target.value };
+                    set("sessions", next);
+                  }} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+                </FieldBlock>
+                <FieldBlock label="End Time">
+                  <input type="time" value={session.endTime} onChange={(e) => {
+                    const next = [...event.sessions];
+                    next[i] = { ...next[i], endTime: e.target.value };
+                    set("sessions", next);
+                  }} className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+                </FieldBlock>
+              </div>
+            </div>
+          ))}
 
           <div className="grid gap-5 md:grid-cols-3">
             <FieldBlock label="Location">
