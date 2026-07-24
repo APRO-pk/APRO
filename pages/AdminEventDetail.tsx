@@ -578,11 +578,18 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
                 </div>
                 {fields.map((f) => {
                   const val = selected.answers[f.id];
-                  const display = Array.isArray(val) ? val.join(", ") : val != null ? String(val) : "—";
+                  const isUrl = typeof val === "string" && (val.startsWith("http://") || val.startsWith("https://"));
+                  const isImage = isUrl && /\.(png|jpg|jpeg|gif|webp|avif|svg)(\?.*)?$/i.test(val);
                   return (
                     <div key={f.id} className="border-b border-white/10 pb-2">
                       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{f.label}</p>
-                      <p className="text-sm text-slate-100 break-words">{display}</p>
+                      {isImage ? (
+                        <a href={val} target="_blank" rel="noreferrer"><img src={val} alt="" className="mt-1 max-h-40 rounded-lg object-contain" /></a>
+                      ) : isUrl ? (
+                        <a href={val} target="_blank" rel="noreferrer" className="text-sm text-violet-300 hover:underline break-words">View file ↗</a>
+                      ) : (
+                        <p className="text-sm text-slate-100 break-words">{Array.isArray(val) ? val.join(", ") : val != null ? String(val) : "—"}</p>
+                      )}
                     </div>
                   );
                 })}
