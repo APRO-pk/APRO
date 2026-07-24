@@ -98,7 +98,7 @@ const EventRegister: React.FC = () => {
       }
 
       const inserts = fields
-        .filter((f) => !["heading", "image", "separator", "rich_html"].includes(f.field_type) && values[f.id] !== undefined && values[f.id] !== null)
+        .filter((f) => !["text", "image", "separator", "rich_html"].includes(f.field_type) && values[f.id] !== undefined && values[f.id] !== null)
         .map((f) => ({
           response_id: responseId,
           field_id: f.id,
@@ -252,7 +252,7 @@ const FormFieldRenderer: React.FC<{
 }> = ({ field, value, error, onChange }) => {
   const baseInput = "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28";
 
-  const displayOnly = ["heading", "image", "separator", "rich_html"].includes(field.field_type);
+  const displayOnly = ["text", "image", "separator", "rich_html"].includes(field.field_type);
 
   const render = () => {
     switch (field.field_type) {
@@ -329,12 +329,8 @@ const FormFieldRenderer: React.FC<{
             onChange={(e) => onChange(e.target.files?.[0]?.name || null)} />
         );
 
-      case "heading": {
-        const level = field.heading_level || "h2";
-        const sizes: Record<string, string> = { h1: "text-4xl", h2: "text-3xl", h3: "text-2xl", h4: "text-xl" };
-        const HeadingTag = level === "h1" ? "h1" : level === "h2" ? "h2" : level === "h3" ? "h3" : "h4";
-        return <div className="mb-2"><HeadingTag className={`${sizes[level]} font-bold text-white`}>{field.label}</HeadingTag></div>;
-      }
+      case "text":
+        return field.label ? <div className="mb-2 text-sm text-slate-200 whitespace-pre-wrap leading-relaxed">{field.label}</div> : null;
 
       case "image":
         return field.image_src ? (

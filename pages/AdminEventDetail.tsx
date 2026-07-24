@@ -4,7 +4,7 @@ import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
 import type { AdminEvent, FormField } from "../src/lib/forms-types";
 import { FIELD_TYPES, FIELD_TYPE_LABELS } from "../src/lib/forms-types";
-import { ArrowUp, ArrowDown, Trash2, Plus, Check, X, Copy } from "lucide-react";
+import { ArrowUp, ArrowDown, Trash2, Plus, Save, Check, X, Copy } from "lucide-react";
 
 type TabId = "details" | "fields" | "responses";
 
@@ -27,6 +27,7 @@ const AdminEventDetail: React.FC = () => {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
+  const [fieldSaveMsg, setFieldSaveMsg] = useState("");
 
   /* ---------- Load ---------- */
   const load = useCallback(async () => {
@@ -118,7 +119,6 @@ const AdminEventDetail: React.FC = () => {
       field_order: order,
       options: [],
       min: null, max: null, step: null,
-      heading_level: null,
       image_src: "",
       image_fit: "cover",
       image_width: null,
@@ -137,13 +137,34 @@ const AdminEventDetail: React.FC = () => {
       field_order: f.field_order,
       options: f.options,
       min: f.min, max: f.max, step: f.step,
-      heading_level: f.heading_level,
       image_src: f.image_src,
       image_fit: f.image_fit,
       image_width: f.image_width,
       image_height: f.image_height,
       html_content: f.html_content,
     }).eq("id", f.id);
+  };
+
+  const saveAllFields = async () => {
+    setFieldSaveMsg("");
+    for (const f of fields) {
+      const { error } = await supabase.from("form_fields").update({
+        field_type: f.field_type,
+        label: f.label,
+        placeholder: f.placeholder,
+        required: f.required,
+        field_order: f.field_order,
+        options: f.options,
+        min: f.min, max: f.max, step: f.step,
+        image_src: f.image_src,
+        image_fit: f.image_fit,
+        image_width: f.image_width,
+        image_height: f.image_height,
+        html_content: f.html_content,
+      }).eq("id", f.id);
+      if (error) { setFieldSaveMsg(error.message); return; }
+    }
+    setFieldSaveMsg("Fields saved");
   };
 
   const removeField = async (fieldId: string) => {
@@ -330,16 +351,25 @@ const AdminEventDetail: React.FC = () => {
       {/* Tab: Fields */}
       {tab === "fields" && (
         <div>
-          <button onClick={addField}
-            className="mb-4 inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-5 py-2.5 text-sm font-bold uppercase tracking-[0.12em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_8px_20px_rgba(61,28,120,0.3)] transition hover:-translate-y-0.5">
-            <Plus size={16} /> Add Field
-          </button>
+          <div className="mb-4 flex items-center gap-3">
+            <button onClick={addField}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-5 py-2.5 text-sm font-bold uppercase tracking-[0.12em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_8px_20px_rgba(61,28,120,0.3)] transition hover:-translate-y-0.5">
+              <Plus size={16} /> Add Field
+            </button>
+            <button onClick={saveAllFields}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-5 py-2.5 text-sm font-bold uppercase tracking-[0.12em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_8px_20px_rgba(61,28,120,0.3)] transition hover:-translate-y-0.5">
+              <Save size={16} /> Save Fields
+            </button>
+            {fieldSaveMsg && (
+              <span className={`text-sm ${fieldSaveMsg === "Fields saved" ? "text-emerald-400" : "text-red-400"}`}>{fieldSaveMsg}</span>
+            )}
+          </div>
           <div className="space-y-3">
             {fields.map((f, i) => (
               <FieldEditor
                 key={f.id}
                 field={f}
-                onUpdate={(updated) => { const next = [...fields]; next[i] = updated; setFields(next); updateField(updated); }}
+                onUpdate={(updated) => { const next = [...fields]; next[i] = updated; setFields(next); }}
                 onRemove={() => removeField(f.id)}
                 onMoveUp={() => moveField(i, -1)}
                 onMoveDown={() => moveField(i, 1)}
@@ -379,7 +409,7 @@ const FieldEditor: React.FC<{
     const parts = val.includes(";") ? val.split(";") : val.split("\n");
     set("options", parts.map((s) => s.trim()));
   };
-  const displayOnly = ["heading", "image", "separator", "rich_html"];
+  const displayOnly = ["text", "image", "separator", "rich_html"];
 
   return (
     <SurfacePanel className="p-5">
@@ -425,17 +455,9 @@ const FieldEditor: React.FC<{
             </div>
           )}
 
-          {field.field_type === "heading" && (
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="text-xs text-slate-400">Level
-                <select value={field.heading_level || "h2"} onChange={(e) => set("heading_level", e.target.value)} className="ml-2 rounded-lg border border-white/10 bg-white/[0.04] px-2 py-1 text-xs text-white outline-none">
-                  <option value="h1">Heading 1</option>
-                  <option value="h2">Heading 2</option>
-                  <option value="h3">Heading 3</option>
-                  <option value="h4">Heading 4</option>
-                </select>
-              </label>
-            </div>
+          {field.field_type === "text" && (
+            <textarea value={field.label} onChange={(e) => set("label", e.target.value)}
+              className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none focus:border-violet-300/28 min-h-[80px] resize-y" placeholder="Write your text content here…" />
           )}
 
           {field.field_type === "image" && (
