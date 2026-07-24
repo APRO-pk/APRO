@@ -19,6 +19,7 @@ const EventRegister: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [session, setSession] = useState<any>(null);
+  const [uploading, setUploading] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -325,8 +326,25 @@ const FormFieldRenderer: React.FC<{
 
       case "file_upload":
         return (
-          <input type="file" className="text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-violet-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-200 hover:file:bg-violet-500/30"
-            onChange={(e) => onChange(e.target.files?.[0]?.name || null)} />
+          <div>
+            <input type="file" className="text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-violet-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-200 hover:file:bg-violet-500/30 disabled:opacity-50"
+              disabled={uploading === field.id}
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploading(field.id);
+                try {
+                  const ext = file.name.split(".").pop();
+                  const path = `${event!.slug}/${field.id}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+                  const { error } = await supabase.storage.from("form_uploads").upload(path, file);
+                  if (error) { onChange(null); return; }
+                  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+                  onChange(`${supabaseUrl}/storage/v1/object/public/form_uploads/${path}`);
+                } catch { onChange(null); } finally { setUploading(null); }
+              }} />
+            {uploading === field.id && <p className="mt-1 text-xs text-violet-300">Uploading…</p>}
+            {value && uploading !== field.id && <p className="mt-1 text-xs text-emerald-400">File uploaded</p>}
+          </div>
         );
 
       case "text":
