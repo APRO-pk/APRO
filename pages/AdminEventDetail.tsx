@@ -379,7 +379,7 @@ const FieldEditor: React.FC<{
             <div>
               <p className="mb-1 text-xs text-slate-500">Options (one per line)</p>
               <textarea value={(field.options || []).join("\n")} onChange={(e) => updateOptions(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none focus:border-violet-300/28 min-h-[60px]" />
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none focus:border-violet-300/28 min-h-[60px] resize-y" />
             </div>
           )}
 
