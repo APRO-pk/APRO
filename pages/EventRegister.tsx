@@ -18,11 +18,16 @@ const EventRegister: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [session, setSession] = useState<any>(null);
 
   useEffect(() => {
     if (!slug) return;
     const load = async () => {
       setLoading(true);
+
+      const { data: sesh } = await supabase.auth.getSession();
+      setSession(sesh?.session ?? null);
+
       const { data: ev, error: evErr } = await supabase
         .from("admin_events")
         .select("*")
@@ -162,6 +167,9 @@ const EventRegister: React.FC = () => {
               <iframe src={event.header_content} className="h-full w-full" allowFullScreen title="Event header" />
             </div>
           )}
+          {event.header_type === "html" && event.header_content && (
+            <div className="mb-6 w-full rounded-2xl overflow-hidden" dangerouslySetInnerHTML={{ __html: event.header_content }} />
+          )}
 
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-white">{event.title}</h1>
@@ -175,37 +183,46 @@ const EventRegister: React.FC = () => {
             </div>
           </div>
 
-          {submitError && (
-            <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{submitError}</div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-2">
-              <FieldInput label="Your Name" required>
-                <input value={values["_name"] || ""} onChange={(e) => set("_name", e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
-              </FieldInput>
-              <FieldInput label="Your Email" required>
-                <input type="email" value={values["_email"] || ""} onChange={(e) => set("_email", e.target.value)}
-                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
-              </FieldInput>
+          {event.audience === "members" && !session ? (
+            <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 px-6 py-8 text-center">
+              <div className="mx-auto mb-3 text-4xl">🔒</div>
+              <h2 className="text-xl font-bold text-white">Members Only</h2>
+              <p className="mt-2 text-slate-300/80">This event is only for registered members. Please log in to register.</p>
             </div>
+          ) : (
+            <>
+              {submitError && (
+                <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{submitError}</div>
+              )}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <FieldInput label="Your Name" required>
+                    <input value={values["_name"] || ""} onChange={(e) => set("_name", e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+                  </FieldInput>
+                  <FieldInput label="Your Email" required>
+                    <input type="email" value={values["_email"] || ""} onChange={(e) => set("_email", e.target.value)}
+                      className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28" />
+                  </FieldInput>
+                </div>
 
-            {fields.map((f) => (
-              <FormFieldRenderer
-                key={f.id}
-                field={f}
-                value={values[f.id]}
-                error={errors[f.id]}
-                onChange={(val) => set(f.id, val)}
-              />
-            ))}
+                {fields.map((f) => (
+                  <FormFieldRenderer
+                    key={f.id}
+                    field={f}
+                    value={values[f.id]}
+                    error={errors[f.id]}
+                    onChange={(val) => set(f.id, val)}
+                  />
+                ))}
 
-            <button type="submit" disabled={submitting}
-              className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.26),0_18px_28px_rgba(61,28,120,0.28)] transition hover:-translate-y-0.5 disabled:opacity-60">
-              {submitting ? "Submitting…" : "Submit Registration"}
-            </button>
-          </form>
+                <button type="submit" disabled={submitting}
+                  className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.26),0_18px_28px_rgba(61,28,120,0.28)] transition hover:-translate-y-0.5 disabled:opacity-60">
+                  {submitting ? "Submitting…" : "Submit Registration"}
+                </button>
+              </form>
+            </>
+          )}
         </SectionBand>
       )}
     </PageScaffold>
