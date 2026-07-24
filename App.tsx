@@ -23,6 +23,9 @@ import ResetPassword from './pages/ResetPassword';
 import FeedbackHub from './pages/FeedbackHub';
 import AdminFeedback from './pages/AdminFeedback';
 import AproWorks from './pages/AproWorks';
+import EventRegister from './pages/EventRegister';
+import AdminEventsList from './pages/AdminEventsList';
+import AdminEventDetail from './pages/AdminEventDetail';
 
 
 function App() {
@@ -46,6 +49,7 @@ function App() {
             <Route path="login" element={<UserLogin />} />
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="feedback" element={<FeedbackHub />} />
+            <Route path="events/:slug/register" element={<EventRegister />} />
             <Route
               path="/admin/dashboard"
               element={
@@ -80,6 +84,27 @@ function App() {
                     element={
                       <ProtectedAdminRoute>
                         <AdminFeedback />
+                      </ProtectedAdminRoute>
+                    } />
+                  <Route
+                    path="/admin/events"
+                    element={
+                      <ProtectedAdminRoute>
+                        <AdminEventsList />
+                      </ProtectedAdminRoute>
+                    } />
+                  <Route
+                    path="/admin/events/:id"
+                    element={
+                      <ProtectedAdminRoute>
+                        <AdminEventDetail />
+                      </ProtectedAdminRoute>
+                    } />
+                  <Route
+                    path="/admin/events/new"
+                    element={
+                      <ProtectedAdminRoute>
+                        <AdminEventDetail />
                       </ProtectedAdminRoute>
                     } />
             <Route path="*" element={<Navigate to="/" replace />} />
