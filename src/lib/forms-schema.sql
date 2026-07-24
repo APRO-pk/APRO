@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS form_fields (
                   'short_text','long_text','number','slider',
                   'date','time','datetime',
                   'dropdown','checkboxes','radio_buttons','file_upload',
-                  'heading','image','separator','rich_html'
+                  'text','image','separator','rich_html'
                 )),
   label         TEXT NOT NULL DEFAULT '',
   placeholder   TEXT NOT NULL DEFAULT '',
@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS form_fields (
   min           NUMERIC,
   max           NUMERIC,
   step          NUMERIC,
-  heading_level TEXT DEFAULT 'h2' CHECK (heading_level IN ('h1','h2','h3','h4')),
   image_src     TEXT NOT NULL DEFAULT '',
   image_fit     TEXT NOT NULL DEFAULT 'cover' CHECK (image_fit IN ('cover','contain','fill','none')),
   image_width   INTEGER,

@@ -5,9 +5,8 @@ export type FieldType =
   | "short_text" | "long_text" | "number" | "slider"
   | "date" | "time" | "datetime"
   | "dropdown" | "checkboxes" | "radio_buttons" | "file_upload"
-  | "heading" | "image" | "separator" | "rich_html";
+  | "text" | "image" | "separator" | "rich_html";
 
-export type HeadingLevel = "h1" | "h2" | "h3" | "h4";
 export type ImageFit = "cover" | "contain" | "fill" | "none";
 
 export interface EventSession {
@@ -47,7 +46,6 @@ export interface FormField {
   min: number | null;
   max: number | null;
   step: number | null;
-  heading_level: HeadingLevel | null;
   image_src: string;
   image_fit: ImageFit;
   image_width: number | null;
@@ -83,7 +81,7 @@ export const FIELD_TYPE_LABELS: Record<FieldType, string> = {
   checkboxes: "Checkboxes",
   radio_buttons: "Radio Buttons",
   file_upload: "File Upload",
-  heading: "Heading",
+  text: "Text Block",
   image: "Image",
   separator: "Separator",
   rich_html: "Custom HTML",
@@ -93,5 +91,5 @@ export const FIELD_TYPES: FieldType[] = [
   "short_text", "long_text", "number", "slider",
   "date", "time", "datetime",
   "dropdown", "checkboxes", "radio_buttons", "file_upload",
-  "heading", "image", "separator", "rich_html",
+  "text", "image", "separator", "rich_html",
 ];
