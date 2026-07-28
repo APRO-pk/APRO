@@ -78,10 +78,14 @@ const Events: React.FC = () => {
           {ev.daysUntilDeadline === 0 ? "Deadline today" : `${ev.daysUntilDeadline} day${ev.daysUntilDeadline === 1 ? "" : "s"} to register`}
         </p>
       )}
-      <div className="mt-8">
-        <Link to={`/events/${ev.slug}`}
+      <div className="mt-8 flex gap-3">
+        <Link to={`/events/${ev.slug}/register`}
           className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(61,28,120,0.32)] transition hover:-translate-y-0.5">
-          View event
+          Register
+        </Link>
+        <Link to={`/events/${ev.slug}`}
+          className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-slate-300 transition hover:-translate-y-0.5 hover:bg-white/[0.08]">
+          Details
         </Link>
       </div>
     </SurfacePanel>

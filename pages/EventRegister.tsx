@@ -223,6 +223,8 @@ const EventRegister: React.FC = () => {
                     error={errors[f.id]}
                     onChange={(val) => set(f.id, val)}
                     eventSlug={event?.slug || ""}
+                    uploading={uploading}
+                    onUploading={setUploading}
                   />
                 ))}
 
@@ -256,7 +258,9 @@ const FormFieldRenderer: React.FC<{
   error?: string;
   onChange: (val: any) => void;
   eventSlug: string;
-}> = ({ field, value, error, onChange, eventSlug }) => {
+  uploading: string | null;
+  onUploading: (v: string | null) => void;
+}> = ({ field, value, error, onChange, eventSlug, uploading, onUploading }) => {
   const baseInput = "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28";
 
   const displayOnly = ["text", "image", "separator", "rich_html"].includes(field.field_type);
@@ -330,7 +334,7 @@ const FormFieldRenderer: React.FC<{
           </div>
         );
 
-      case "file_upload":
+          case "file_upload":
         return (
           <div>
             <input type="file" className="text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-violet-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-200 hover:file:bg-violet-500/30 disabled:opacity-50"
@@ -338,7 +342,7 @@ const FormFieldRenderer: React.FC<{
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                setUploading(field.id);
+                onUploading(field.id);
                 try {
                   const ext = file.name.split(".").pop();
                   const path = `${eventSlug}/${field.id}/${Date.now()}_${safeUUID()}.${ext}`;
@@ -346,7 +350,7 @@ const FormFieldRenderer: React.FC<{
                   if (error) { onChange(null); return; }
                   const { data: signed } = await supabase.storage.from("form_uploads").createSignedUrl(path, 60 * 60 * 24 * 365);
                   onChange(signed?.signedUrl || null);
-                } catch (e) { onChange(null); } finally { setUploading(null); }
+                } catch (e) { onChange(null); } finally { onUploading(null); }
               }} />
             {uploading === field.id && <p className="mt-1 text-xs text-violet-300">Uploading…</p>}
             {value && uploading !== field.id && <p className="mt-1 text-xs text-emerald-400">File uploaded</p>}

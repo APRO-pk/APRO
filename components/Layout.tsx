@@ -15,7 +15,6 @@ import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
 import type { NavItem } from "../types";
 import { NAV_ITEMS } from "../types";
-import type { NavItem } from "../types";
 import { supabase } from "../src/lib/supabase";
 import { unreadSignalCount } from "../src/lib/community-api";
 import { SignalBadge } from "../src/components/Community/SignalBadge";
