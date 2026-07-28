@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
@@ -21,6 +21,7 @@ const AdminEventDetail: React.FC = () => {
     reg_deadline: null, status: "draft",
     audience: "public",
     header_type: "text", header_content: "",
+    completed: null,
     created_at: "", updated_at: "",
   });
   const [fields, setFields] = useState<FormField[]>([]);
@@ -28,6 +29,12 @@ const AdminEventDetail: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
   const [fieldSaveMsg, setFieldSaveMsg] = useState("");
+  const [showCompleteDialog, setShowCompleteDialog] = useState(false);
+  const [completeBlog, setCompleteBlog] = useState("");
+  const [completePhotos, setCompletePhotos] = useState<string[]>([]);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [photoUploadError, setPhotoUploadError] = useState("");
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   /* ---------- Load ---------- */
   const load = useCallback(async () => {
@@ -90,6 +97,7 @@ const AdminEventDetail: React.FC = () => {
       status: event.status,
       header_type: event.header_type,
       header_content: event.header_content,
+      completed: event.completed,
       updated_at: new Date().toISOString(),
     }).eq("id", id);
     if (error) setSaveMsg(error.message);
@@ -166,6 +174,43 @@ const AdminEventDetail: React.FC = () => {
     }
     setFieldSaveMsg("Fields saved");
   };
+
+  const deleteEvent = async () => {
+    if (!window.confirm(`Delete "${event.title}"? This will also remove all form fields and responses permanently.`)) return;
+    await supabase.from("admin_events").delete().eq("id", id);
+    navigate("/admin/events", { replace: true });
+  };
+
+  const completeEvent = async () => {
+    if (!id) return;
+    await supabase.from("admin_events").update({
+      status: "closed",
+      completed: { blog: completeBlog, photos: completePhotos, completed_at: new Date().toISOString() },
+      updated_at: new Date().toISOString(),
+    }).eq("id", id);
+    setEvent((prev) => prev ? { ...prev, status: "closed", completed: { blog: completeBlog, photos: completePhotos, completed_at: new Date().toISOString() } } : prev);
+    setShowCompleteDialog(false);
+    setSaveMsg("Event marked as completed");
+  };
+
+  const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !id) return;
+    setPhotoUploadError("");
+    setUploadingPhotos(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `completed_photos/${id}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("event_photos").upload(path, file);
+      if (error) { setPhotoUploadError(error.message); setUploadingPhotos(false); return; }
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const url = `${supabaseUrl}/storage/v1/object/public/event_photos/${path}`;
+      setCompletePhotos((prev) => [...prev, url]);
+    } catch (err: any) { setPhotoUploadError(err?.message || "Upload failed"); }
+    finally { setUploadingPhotos(false); if (photoInputRef.current) photoInputRef.current.value = ""; }
+  };
+
+  const removePhoto = (index: number) => setCompletePhotos((prev) => prev.filter((_, i) => i !== index));
 
   const removeField = async (fieldId: string) => {
     await supabase.from("form_fields").delete().eq("id", fieldId);
@@ -299,6 +344,7 @@ const AdminEventDetail: React.FC = () => {
                 <option value="draft">Draft</option>
                 <option value="open">Open</option>
                 <option value="closed">Closed</option>
+                <option value="coming_soon">Coming Soon</option>
               </select>
             </FieldBlock>
             <FieldBlock label="Audience">
@@ -341,10 +387,24 @@ const AdminEventDetail: React.FC = () => {
             </div>
           </div>
 
-          <button type="submit" disabled={saving}
-            className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(61,28,120,0.32)] transition hover:-translate-y-0.5 disabled:opacity-60">
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button type="submit" disabled={saving}
+              className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(61,28,120,0.32)] transition hover:-translate-y-0.5 disabled:opacity-60">
+              {saving ? "Saving…" : "Save Changes"}
+            </button>
+            {!isNew && (
+              <button type="button" onClick={() => { setCompleteBlog(event.completed?.blog || ""); setCompletePhotos(event.completed?.photos || []); setShowCompleteDialog(true); }}
+                className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-8 py-3 text-sm font-bold uppercase tracking-[0.14em] text-emerald-200 transition hover:bg-emerald-400/20">
+                Completed Event Details
+              </button>
+            )}
+            {!isNew && (
+              <button type="button" onClick={deleteEvent}
+                className="inline-flex items-center gap-2 rounded-full border border-red-400/20 px-8 py-3 text-sm font-bold uppercase tracking-[0.14em] text-red-300 transition hover:bg-red-400/10">
+                Delete Event
+              </button>
+            )}
+          </div>
         </form>
       )}
 
@@ -387,6 +447,58 @@ const AdminEventDetail: React.FC = () => {
       {/* Tab: Responses */}
       {tab === "responses" && (
         <ResponsesTab eventId={id!} fields={fields} />
+      )}
+
+      {/* Completed Event Dialog */}
+      {showCompleteDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="w-full max-w-2xl rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(14,15,28,0.98),rgba(8,10,18,1))] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-white">Completed Event Details</h2>
+              <button onClick={() => setShowCompleteDialog(false)} className="text-slate-400 hover:text-white"><X size={20} /></button>
+            </div>
+
+            <div className="space-y-5">
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Blog Content (HTML)</p>
+                <textarea value={completeBlog} onChange={(e) => setCompleteBlog(e.target.value)}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none focus:border-violet-300/28 min-h-[200px] font-mono resize-y" placeholder="<h2>What we learned…</h2><p>…</p>" />
+              </div>
+
+              <div>
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Photos ({completePhotos.length})</p>
+                {completePhotos.length === 0 && <p className="mb-3 text-xs text-slate-500">No photos uploaded yet.</p>}
+                <div className="mb-3 space-y-1">
+                  {completePhotos.map((url, i) => {
+                    const name = url.split("/").pop()?.split("?")[0] || `photo-${i + 1}`;
+                    return (
+                      <div key={i} className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                        <span className="text-sm text-slate-300 truncate">{name}</span>
+                        <button onClick={() => removePhoto(i)} className="shrink-0 text-red-400 hover:text-red-300"><X size={14} /></button>
+                      </div>
+                    );
+                  })}
+                </div>
+                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/10 px-4 py-2 text-sm text-slate-300 hover:bg-white/[0.06]">
+                  <input ref={photoInputRef} type="file" accept="image/*" onChange={uploadPhoto} className="hidden" disabled={uploadingPhotos} />
+                  {uploadingPhotos ? "Uploading…" : "Upload Photo"}
+                </label>
+                {photoUploadError && <p className="mt-2 text-xs text-red-400">{photoUploadError}</p>}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <button onClick={completeEvent}
+                  className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_8px_20px_rgba(61,28,120,0.3)] transition hover:-translate-y-0.5">
+                  Save Completed Details
+                </button>
+                <button onClick={() => setShowCompleteDialog(false)}
+                  className="rounded-full border border-white/10 px-6 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/[0.06]">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </AdminShell>
   );

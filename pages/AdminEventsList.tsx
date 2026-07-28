@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
 import type { AdminEvent } from "../src/lib/forms-types";
@@ -25,6 +25,12 @@ const AdminEventsList: React.FC = () => {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate("/admin/login");
+  };
+
+  const deleteEvent = async (id: string, title: string) => {
+    if (!window.confirm(`Delete "${title}"? This will also remove all form fields and responses.`)) return;
+    await supabase.from("admin_events").delete().eq("id", id);
+    setEvents(events.filter((e) => e.id !== id));
   };
 
   const statusColor = (s: string) =>
@@ -81,6 +87,10 @@ const AdminEventsList: React.FC = () => {
                     className="rounded-full border border-white/10 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:bg-white/[0.07]">
                     View Form
                   </a>
+                  <button onClick={() => deleteEvent(ev.id, ev.title)}
+                    className="rounded-full border border-red-400/20 px-4 py-2 text-sm font-semibold text-red-300 transition hover:bg-red-400/10">
+                    <Trash2 size={16} />
+                  </button>
                 </div>
               </div>
             </SurfacePanel>

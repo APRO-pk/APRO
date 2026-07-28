@@ -13,9 +13,11 @@ type DashboardStats = {
   students: number;
   chapters: number;
   careers: number;
+  crewProposals: number;
   pendingStudents: number;
   pendingChapters: number;
   pendingCareers: number;
+  pendingCrewProposals: number;
 };
 
 const APPLICATION_TYPES = {
@@ -35,9 +37,11 @@ const AdminDashboard: React.FC = () => {
     students: 0,
     chapters: 0,
     careers: 0,
+    crewProposals: 0,
     pendingStudents: 0,
     pendingChapters: 0,
     pendingCareers: 0,
+    pendingCrewProposals: 0,
   });
 
   useEffect(() => {
@@ -70,25 +74,31 @@ const AdminDashboard: React.FC = () => {
           studentCountRes,
           chapterCountRes,
           careerCountRes,
+          crewCountRes,
           pendingStudentRes,
           pendingChapterRes,
           pendingCareerRes,
+          pendingCrewRes,
         ] = await Promise.all([
           supabase.from("applications").select("*", { count: "exact", head: true }).eq("applicant_type", APPLICATION_TYPES.STUDENT),
           supabase.from("applications").select("*", { count: "exact", head: true }).eq("applicant_type", APPLICATION_TYPES.CHAPTER),
           supabase.from("career_applications").select("*", { count: "exact", head: true }),
+          supabase.from("crews").select("*", { count: "exact", head: true }),
           supabase.from("applications").select("*", { count: "exact", head: true }).eq("applicant_type", APPLICATION_TYPES.STUDENT).eq("status", STATUS.PENDING),
           supabase.from("applications").select("*", { count: "exact", head: true }).eq("applicant_type", APPLICATION_TYPES.CHAPTER).eq("status", STATUS.PENDING),
           supabase.from("career_applications").select("*", { count: "exact", head: true }).eq("status", STATUS.PENDING),
+          supabase.from("crews").select("*", { count: "exact", head: true }).eq("status", "proposed"),
         ]);
 
         setStats({
           students: studentCountRes.count || 0,
           chapters: chapterCountRes.count || 0,
           careers: careerCountRes.count || 0,
+          crewProposals: crewCountRes.count || 0,
           pendingStudents: pendingStudentRes.count || 0,
           pendingChapters: pendingChapterRes.count || 0,
           pendingCareers: pendingCareerRes.count || 0,
+          pendingCrewProposals: pendingCrewRes.count || 0,
         });
       } catch (err) {
         console.error("Dashboard load error:", err);
@@ -125,10 +135,11 @@ const AdminDashboard: React.FC = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
             <StatsCard title="Student Applications" count={stats.students} pending={stats.pendingStudents} to="/admin/students" accent="violet" />
             <StatsCard title="Chapter Applications" count={stats.chapters} pending={stats.pendingChapters} to="/admin/chapters" accent="cyan" />
             <StatsCard title="Career Applications" count={stats.careers} pending={stats.pendingCareers} to="/admin/careers" accent="fuchsia" />
+            <StatsCard title="Crew Applications" count={stats.crewProposals} pending={stats.pendingCrewProposals} to="/admin/crew" accent="emerald" />
           </div>
 
           <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -138,6 +149,7 @@ const AdminDashboard: React.FC = () => {
                 <QuickLink to="/admin/students" label="Review Student Applications" />
                 <QuickLink to="/admin/chapters" label="Review Chapter Applications" />
                 <QuickLink to="/admin/careers" label="Review Career Applications" />
+                <QuickLink to="/admin/crew" label="Review Crew Applications" />
                 <QuickLink to="/admin/feedback" label="Manage Feedback & Bugs" />
                 <QuickLink to="/admin/events" label="Event Registration Forms" />
                 <QuickLink to="/admin/forums" label="Forums" />
@@ -150,7 +162,8 @@ const AdminDashboard: React.FC = () => {
                 <OverviewRow label="Total Student Applications" value={stats.students} />
                 <OverviewRow label="Total Chapter Applications" value={stats.chapters} />
                 <OverviewRow label="Total Career Applications" value={stats.careers} />
-                <OverviewRow label="Total Pending Reviews" value={stats.pendingStudents + stats.pendingChapters + stats.pendingCareers} />
+                <OverviewRow label="Total Crew Proposals" value={stats.crewProposals} />
+                <OverviewRow label="Total Pending Reviews" value={stats.pendingStudents + stats.pendingChapters + stats.pendingCareers + stats.pendingCrewProposals} />
               </div>
             </SurfacePanel>
           </div>
@@ -165,15 +178,17 @@ const StatsCard: React.FC<{
   count: number;
   pending: number;
   to: string;
-  accent: "violet" | "cyan" | "fuchsia";
+  accent: "violet" | "cyan" | "fuchsia" | "emerald";
 }> = ({ title, count, pending, to, accent }) => {
   const accentClass =
     accent === "cyan"
       ? "bg-[linear-gradient(180deg,rgba(18,24,44,0.9),rgba(8,10,18,0.96))]"
       : accent === "fuchsia"
         ? "bg-[linear-gradient(180deg,rgba(30,21,46,0.88),rgba(8,10,18,0.96))]"
-        : "";
-  const linkClass = accent === "cyan" ? "text-cyan-200" : accent === "fuchsia" ? "text-fuchsia-200" : "text-violet-200";
+        : accent === "emerald"
+          ? "bg-[linear-gradient(180deg,rgba(6,30,24,0.9),rgba(8,10,18,0.96))]"
+          : "";
+  const linkClass = accent === "cyan" ? "text-cyan-200" : accent === "fuchsia" ? "text-fuchsia-200" : accent === "emerald" ? "text-emerald-200" : "text-violet-200";
 
   return (
     <SurfacePanel className={`p-5 ${accentClass}`}>

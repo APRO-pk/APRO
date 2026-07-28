@@ -1,4 +1,10 @@
-export type EventStatus = "draft" | "open" | "closed";
+export type EventStatus = "draft" | "open" | "closed" | "coming_soon";
+
+export interface EventCompletion {
+  blog: string;
+  photos: string[];
+  completed_at: string;
+}
 export type HeaderType = "text" | "image" | "video" | "model" | "html";
 export type Audience = "public" | "members";
 export type FieldType =
@@ -30,6 +36,7 @@ export interface AdminEvent {
   audience: Audience;
   header_type: HeaderType;
   header_content: string;
+  completed: EventCompletion | null;
   created_at: string;
   updated_at: string;
 }

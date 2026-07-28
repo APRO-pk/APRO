@@ -18,15 +18,26 @@ import AdminDashboard from './pages/AdminDashboard';
 import StudentApplicationsPage from './pages/StudentApplicationsPage';
 import ChapterApplicationsPage from './pages/ChapterApplicationsPage';
 import CareerApplicationsPage from './pages/CareerApplicationsPage';
+import CrewApplicationsPage from './pages/CrewApplicationsPage';
 import UserLogin from './pages/userLogin';
 import ResetPassword from './pages/ResetPassword';
 import FeedbackHub from './pages/FeedbackHub';
 import AdminFeedback from './pages/AdminFeedback';
 import AproWorks from './pages/AproWorks';
 import EventRegister from './pages/EventRegister';
+import EventDetail from './pages/EventDetail';
 import AdminEventsList from './pages/AdminEventsList';
 import AdminEventDetail from './pages/AdminEventDetail';
 
+// Community
+import Launchpad from './src/pages/Community/Launchpad';
+import NewLaunch from './src/pages/Community/NewLaunch';
+import LaunchDetail from './src/pages/Community/LaunchDetail';
+import UserFeed from './src/pages/Community/UserFeed';
+import Signals from './src/pages/Community/Signals';
+import Crew from './src/pages/Community/Crew';
+import Missions from './src/pages/Community/Missions';
+import Me from './src/pages/Community/Me';
 
 function App() {
   return (
@@ -50,6 +61,16 @@ function App() {
             <Route path="reset-password" element={<ResetPassword />} />
             <Route path="feedback" element={<FeedbackHub />} />
             <Route path="events/:slug/register" element={<EventRegister />} />
+            <Route path="events/:slug" element={<EventDetail />} />
+            <Route path="community" element={<Launchpad />} />
+            <Route path="community/launchpad" element={<Navigate to="/community" replace />} />
+            <Route path="community/new" element={<NewLaunch />} />
+            <Route path="community/post/:id" element={<LaunchDetail />} />
+            <Route path="community/user/:id" element={<UserFeed />} />
+            <Route path="community/signals" element={<Signals />} />
+            <Route path="community/crew" element={<Crew />} />
+            <Route path="community/missions" element={<Missions />} />
+            <Route path="community/me" element={<Me />} />
             <Route
               path="/admin/dashboard"
               element={
@@ -79,6 +100,13 @@ function App() {
                       <CareerApplicationsPage />
                     </ProtectedAdminRoute>
                   } />
+                  <Route
+                    path="/admin/crew"
+                    element={
+                      <ProtectedAdminRoute>
+                        <CrewApplicationsPage />
+                      </ProtectedAdminRoute>
+                    } />
                   <Route
                     path="/admin/feedback"
                     element={

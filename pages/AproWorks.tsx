@@ -639,7 +639,7 @@ const AproWorks: React.FC = () => {
             Ready to launch?
           </h2>
           <p className="mt-4 mx-auto max-w-xl text-base leading-8 text-slate-300/76">
-            APRO Works is the single entry point to Pakistan's aerospace toolset. One download, full access.
+            APRO Works is the single entry point to rocketry aerospace toolset. One download, full access.
           </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               {user ? (

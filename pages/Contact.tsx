@@ -8,7 +8,7 @@ const Contact: React.FC = () => {
       <PageHero
         eyebrow="Contact"
         title="Get in touch with APRO."
-        description="Reach out for partnerships, questions, or conversations around structured rocketry and aerospace culture in Pakistan."
+        description="Reach out for partnerships, questions, or conversations around structured rocketry and aerospace."
       />
 
       <SectionBand className="bg-[linear-gradient(180deg,rgba(12,14,28,0.96),rgba(8,10,18,1))]">

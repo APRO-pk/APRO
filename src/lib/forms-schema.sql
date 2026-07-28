@@ -15,10 +15,11 @@ CREATE TABLE IF NOT EXISTS admin_events (
   location      TEXT NOT NULL DEFAULT '',
   capacity      INTEGER NOT NULL DEFAULT 0,
   reg_deadline  TIMESTAMPTZ,
-  status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','closed')),
+  status        TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','open','closed','coming_soon')),
   header_type   TEXT NOT NULL DEFAULT 'text' CHECK (header_type IN ('text','image','video','model','html')),
   header_content TEXT NOT NULL DEFAULT '',
   audience      TEXT NOT NULL DEFAULT 'public' CHECK (audience IN ('public','members')),
+  completed     JSONB,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );

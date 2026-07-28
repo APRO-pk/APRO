@@ -8,6 +8,10 @@ import { FIELD_TYPE_LABELS } from "../src/lib/forms-types";
 type FormValues = Record<string, any>;
 type FieldErrors = Record<string, string>;
 
+function safeUUID(): string {
+  try { return crypto.randomUUID(); } catch (e) { return `${Date.now()}-${Math.random().toString(36).slice(2)}`; }
+}
+
 const EventRegister: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const [event, setEvent] = useState<AdminEvent | null>(null);
@@ -77,7 +81,7 @@ const EventRegister: React.FC = () => {
     setSubmitError("");
 
     try {
-      const responseId = crypto.randomUUID();
+      const responseId = safeUUID();
 
       const { error: respErr } = await supabase
         .from("form_responses")
@@ -118,7 +122,7 @@ const EventRegister: React.FC = () => {
       }
 
       setSuccess(true);
-    } catch {
+    } catch (e) {
       setSubmitError("Something went wrong");
     } finally {
       setSubmitting(false);
@@ -337,12 +341,12 @@ const FormFieldRenderer: React.FC<{
                 setUploading(field.id);
                 try {
                   const ext = file.name.split(".").pop();
-                  const path = `${eventSlug}/${field.id}/${Date.now()}_${crypto.randomUUID()}.${ext}`;
+                  const path = `${eventSlug}/${field.id}/${Date.now()}_${safeUUID()}.${ext}`;
                   const { error } = await supabase.storage.from("form_uploads").upload(path, file);
                   if (error) { onChange(null); return; }
-                  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-                  onChange(`${supabaseUrl}/storage/v1/object/public/form_uploads/${path}`);
-                } catch { onChange(null); } finally { setUploading(null); }
+                  const { data: signed } = await supabase.storage.from("form_uploads").createSignedUrl(path, 60 * 60 * 24 * 365);
+                  onChange(signed?.signedUrl || null);
+                } catch (e) { onChange(null); } finally { setUploading(null); }
               }} />
             {uploading === field.id && <p className="mt-1 text-xs text-violet-300">Uploading…</p>}
             {value && uploading !== field.id && <p className="mt-1 text-xs text-emerald-400">File uploaded</p>}

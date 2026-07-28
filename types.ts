@@ -4,10 +4,9 @@ import {
   IoDesktop,
   IoInformationCircle,
   IoCalendar,
-  IoChatbubble,
-  IoCall,
   IoPeople,
   IoDocumentText,
+  IoRocket,
 } from "react-icons/io5";
 
 export interface NavItem {
@@ -21,8 +20,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "APRO Works", path: "/apro-works", icon: IoDesktop },
   { label: "About APRO", path: "/about", icon: IoInformationCircle },
   { label: "Events", path: "/events", icon: IoCalendar },
-  { label: "Feedback", path: "/feedback", icon: IoChatbubble },
-  { label: "Contact", path: "/contact", icon: IoCall },
+  { label: "Community", path: "/community", icon: IoRocket },
   { label: "Membership", path: "/membership", icon: IoPeople },
   { label: "Legal", path: "/legal", icon: IoDocumentText },
 ];
