@@ -1,0 +1,3 @@
+-- Run these in Supabase SQL Editor
+ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS flag TEXT NOT NULL DEFAULT '';
+ALTER TABLE crews ADD COLUMN IF NOT EXISTS flag TEXT NOT NULL DEFAULT '';

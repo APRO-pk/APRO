@@ -379,7 +379,7 @@ const ChapterApplication: React.FC = () => {
                   "I refuse to wait for permission from the future. I pledge to use
                   my knowledge for the advancement of science and the peaceful
                   exploration of the skies. I am a builder, not a destroyer. I am a
-                  Space Citizen of Pakistan."
+                  Space Citizen!"
                 </p>
               </div>
 

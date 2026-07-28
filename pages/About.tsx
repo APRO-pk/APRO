@@ -8,7 +8,7 @@ const About: React.FC = () => {
       <PageHero
         eyebrow="About APRO"
         title="From equations to engines."
-        description="APRO began as a refusal to wait for infrastructure before building technical culture. The organization exists to create a disciplined rocketry path in Pakistan where none was clearly available."
+        description="A structured aerospace community for membership, chapter growth, safety discipline, and technical momentum across the world."
       />
 
       <SectionBand className="bg-[linear-gradient(180deg,rgba(24,15,48,0.84),rgba(8,10,18,0.98))]">

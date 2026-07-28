@@ -1,11 +1,25 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
-import { Instagram, Menu, X } from "lucide-react";
+import {
+  Instagram,
+  Menu,
+  X,
+  LayoutDashboard,
+  LogOut,
+  MessageSquareText,
+  Phone,
+  Bell,
+  Rocket,
+} from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
 import type { NavItem } from "../types";
 import { NAV_ITEMS } from "../types";
+import type { NavItem } from "../types";
 import { supabase } from "../src/lib/supabase";
+import { unreadSignalCount } from "../src/lib/community-api";
+import { SignalBadge } from "../src/components/Community/SignalBadge";
+import { SignupPrompt } from "../src/components/Community/SignupPrompt";
 import logo from "../assets/logo.png";
 import launchpadIcon from "../assets/launchpad.png";
 
@@ -81,10 +95,15 @@ function LaunchpadLink({
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [unreadSignals, setUnreadSignals] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
+  const [authAction, setAuthAction] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  const isCommunity = location.pathname.startsWith('/community');
 
   useEffect(() => {
     const getSession = async () => {
@@ -108,6 +127,14 @@ export const Layout: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user) { setUnreadSignals(0); return; }
+    const fetchCount = async () => setUnreadSignals(await unreadSignalCount(user.id));
+    fetchCount();
+    const interval = setInterval(fetchCount, 30000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setIsMenuOpen(false);
@@ -118,6 +145,9 @@ export const Layout: React.FC = () => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
         setUserMenuOpen(false);
+      }
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifPanelOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -237,6 +267,37 @@ export const Layout: React.FC = () => {
 
             <div className="hidden items-center gap-3 lg:flex">
               <CurrencySelector />
+              {isCommunity && (
+                <div className="relative" ref={notifRef}>
+                  <button
+                    onClick={() => user ? setNotifPanelOpen((v) => !v) : setAuthAction('signals')}
+                    className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-slate-100 transition duration-300 hover:bg-white/[0.08]"
+                    style={navPillStyle}
+                  >
+                    <Bell size={18} />
+                    {unreadSignals > 0 && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 text-[10px] font-bold text-white shadow-lg shadow-rose-500/30">
+                        {unreadSignals > 99 ? '99+' : unreadSignals}
+                      </span>
+                    )}
+                  </button>
+                  {notifPanelOpen && user && (
+                    <div
+                      className="absolute right-0 mt-2 w-72 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1120]/95 backdrop-blur-xl shadow-xl"
+                      style={{ animation: "dropdownFadeIn 0.15s ease-out" }}
+                    >
+                      <div className="border-b border-white/10 px-4 py-3">
+                        <p className="text-sm font-bold text-white">Signals</p>
+                      </div>
+                      <div className="flex flex-col items-center justify-center py-12 px-4">
+                        <Bell size={28} className="text-slate-600 mb-3" />
+                        <p className="text-sm text-slate-500">No signals yet</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+              <SignupPrompt action={authAction} onClose={() => setAuthAction(null)} />
               {user ? (
                 <div className="relative" ref={menuRef}>
                   <button
@@ -248,22 +309,59 @@ export const Layout: React.FC = () => {
                   </button>
                   {userMenuOpen && (
                     <div
-                      className="absolute right-0 mt-2 w-44 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1120] shadow-xl"
+                      className="absolute right-0 mt-2 w-56 overflow-hidden rounded-2xl border border-white/10 bg-[#0f1120]/95 backdrop-blur-xl shadow-xl"
                       style={{ animation: "dropdownFadeIn 0.15s ease-out" }}
                     >
+                      <div className="border-b border-white/10 px-4 py-3">
+                        <p className="text-xs text-slate-400">Signed in as</p>
+                        <p className="text-sm font-semibold text-white truncate">{user.email}</p>
+                      </div>
                       <Link
                         to="/admin/dashboard"
                         onClick={() => setUserMenuOpen(false)}
-                        className="block px-4 py-3 text-sm text-slate-200 transition hover:bg-white/[0.06]"
+                        className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
                       >
-                        Dashboard
+                        <LayoutDashboard size={16} className="text-violet-300 transition-transform duration-200 group-hover:scale-110" />
+                        <span>Dashboard</span>
                       </Link>
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full px-4 py-3 text-left text-sm text-red-400 transition hover:bg-white/[0.06]"
+                      <Link
+                        to="/community/signals"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
                       >
-                        Log out
-                      </button>
+                        <Bell size={16} className="text-rose-300 transition-transform duration-200 group-hover:scale-110" />
+                        <span>Signals</span>
+                        {unreadSignals > 0 && (
+                          <span className="ml-auto text-[10px] font-bold text-rose-400 bg-rose-500/20 px-1.5 py-0.5 rounded-full">
+                            {unreadSignals}
+                          </span>
+                        )}
+                      </Link>
+                      <Link
+                        to="/feedback"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
+                      >
+                        <MessageSquareText size={16} className="text-cyan-300 transition-transform duration-200 group-hover:scale-110" />
+                        <span>Feedback</span>
+                      </Link>
+                      <Link
+                        to="/contact"
+                        onClick={() => setUserMenuOpen(false)}
+                        className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
+                      >
+                        <Phone size={16} className="text-amber-300 transition-transform duration-200 group-hover:scale-110" />
+                        <span>Contact</span>
+                      </Link>
+                      <div className="border-t border-white/10">
+                        <button
+                          onClick={handleLogout}
+                          className="group flex w-full items-center gap-3 px-4 py-3 text-sm text-red-400 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
+                        >
+                          <LogOut size={16} className="transition-transform duration-200 group-hover:scale-110 group-hover:-translate-x-0.5" />
+                          <span>Log out</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -325,19 +423,53 @@ export const Layout: React.FC = () => {
                         {user.email?.split("@")[0] || user.email}
                       </div>
                     </div>
+                      <Link
+                        to="/admin/dashboard"
+                        onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                        className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
+                        style={navPillStyle}
+                      >
+                        <LayoutDashboard size={16} className="text-violet-300" />
+                        Dashboard
+                      </Link>
+                      <Link
+                        to="/community/signals"
+                        onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                        className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
+                        style={navPillStyle}
+                      >
+                        <Bell size={16} className="text-rose-300" />
+                        <span>Signals</span>
+                        {unreadSignals > 0 && (
+                          <span className="ml-auto text-[10px] font-bold text-rose-400 bg-rose-500/20 px-1.5 py-0.5 rounded-full">
+                            {unreadSignals}
+                          </span>
+                        )}
+                      </Link>
                     <Link
-                      to="/admin/dashboard"
+                      to="/feedback"
                       onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
-                      className="block w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition duration-300 hover:bg-white/[0.08]"
+                      className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
                       style={navPillStyle}
                     >
-                      Dashboard
+                      <MessageSquareText size={16} className="text-cyan-300" />
+                      Feedback
+                    </Link>
+                    <Link
+                      to="/contact"
+                      onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                      className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
+                      style={navPillStyle}
+                    >
+                      <Phone size={16} className="text-amber-300" />
+                      Contact
                     </Link>
                     <button
                       onClick={handleLogout}
-                      className="w-full rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-red-400 transition duration-300 hover:border-white/18 hover:bg-white/[0.08]"
+                      className="group flex w-full items-center gap-3 rounded-2xl border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-red-400 transition-all duration-200 hover:border-white/18 hover:bg-white/[0.08]"
                       style={navPillStyle}
                     >
+                      <LogOut size={16} />
                       Log out
                     </button>
                   </div>
@@ -360,6 +492,7 @@ export const Layout: React.FC = () => {
         <Outlet />
       </main>
 
+      {!location.pathname.startsWith('/community') && (
       <footer className="relative z-10 px-3 pb-6 pt-2 md:px-5 md:pb-8">
         <div
           className="mx-auto w-full max-w-[1840px] rounded-[30px] border border-white/10 px-6 py-6 md:px-8"
@@ -375,7 +508,7 @@ export const Layout: React.FC = () => {
               </h2>
               <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300/76">
                 A structured aerospace community for membership, chapter growth,
-                safety discipline, and technical momentum across Pakistan.
+                safety discipline, and technical momentum across the world.
               </p>
               <div className="mt-4 flex flex-wrap gap-4 text-xs uppercase tracking-[0.22em] text-slate-400">
                 <NavLink to="/legal" className="transition hover:text-white">
@@ -418,6 +551,7 @@ export const Layout: React.FC = () => {
           </div>
         </div>
       </footer>
+      )}
     </div>
   );
 };
