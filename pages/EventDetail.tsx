@@ -136,6 +136,16 @@ const EventDetail: React.FC = () => {
               )}
             </div>
 
+            {/* Register */}
+            {(event.status === "open" || event.status === "coming_soon") && (
+              <div className="rounded-2xl border border-violet-500/20 bg-violet-500/[0.06] p-6">
+                <Link to={`/events/${event.slug}/register`}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-bold uppercase tracking-[0.14em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_12px_28px_rgba(61,28,120,0.32)] transition hover:-translate-y-0.5">
+                  Register Now
+                </Link>
+              </div>
+            )}
+
             {/* Participants */}
             {participants.length > 0 && (
               <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
