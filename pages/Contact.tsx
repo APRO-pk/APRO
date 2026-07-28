@@ -1,8 +1,47 @@
-import React from "react";
+import React, { useState } from "react";
 import { Instagram, Mail } from "lucide-react";
-import { PageHero, PageScaffold, SectionBand, SurfacePanel } from "../components/PageScaffold";
+import { PageHero, PageScaffold, SectionBand, SurfacePanel, formInputClass, formLabelClass, statusMessageClass } from "../components/PageScaffold";
 
 const Contact: React.FC = () => {
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [status, setStatus] = useState("");
+
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStatus("");
+
+    if (!formData.fullName || !formData.email || !formData.subject || !formData.message) {
+      setStatus("Please fill out every field before sending.");
+      return;
+    }
+
+    const body = [
+      `Name: ${formData.fullName}`,
+      `Email: ${formData.email}`,
+      "",
+      formData.message,
+    ].join("\n");
+
+    const mailtoUrl = `mailto:contact.apro.pk@gmail.com?subject=${encodeURIComponent(
+      formData.subject
+    )}&body=${encodeURIComponent(body)}`;
+
+    window.location.href = mailtoUrl;
+    setStatus("Your email app should open with the message filled in.");
+  };
+
   return (
     <PageScaffold>
       <PageHero
@@ -39,17 +78,36 @@ const Contact: React.FC = () => {
 
           <SurfacePanel>
             <h3 className="text-3xl font-bold tracking-[-0.05em] text-white">Send a message</h3>
-            <form className="mt-8 space-y-4" onSubmit={(e) => { e.preventDefault(); alert("Message sent (simulation)"); }}>
-              {["Full Name", "Email Address", "Subject"].map((label) => (
-                <div key={label}>
-                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">{label}</label>
-                  <input className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28" placeholder={label} />
+            <form className="mt-8 space-y-4" onSubmit={handleSubmit}>
+              {[
+                { label: "Full Name", name: "fullName", type: "text", placeholder: "Your name" },
+                { label: "Email Address", name: "email", type: "email", placeholder: "you@example.com" },
+                { label: "Subject", name: "subject", type: "text", placeholder: "What is this about?" },
+              ].map((field) => (
+                <div key={field.name}>
+                  <label className={formLabelClass}>{field.label}</label>
+                  <input
+                    name={field.name}
+                    type={field.type}
+                    value={formData[field.name as keyof typeof formData]}
+                    onChange={handleChange}
+                    className={formInputClass}
+                    placeholder={field.placeholder}
+                  />
                 </div>
               ))}
               <div>
-                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Message</label>
-                <textarea rows={6} className="w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28" placeholder="Your message" />
+                <label className={formLabelClass}>Message</label>
+                <textarea
+                  name="message"
+                  rows={6}
+                  value={formData.message}
+                  onChange={handleChange}
+                  className={formInputClass}
+                  placeholder="Your message"
+                />
               </div>
+              {status ? <div className={statusMessageClass}>{status}</div> : null}
               <button className="inline-flex items-center rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white">
                 Send message
               </button>

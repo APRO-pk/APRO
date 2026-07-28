@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
+import type { NavItem } from "../types";
 import { NAV_ITEMS } from "../types";
 import type { NavItem } from "../types";
 import { supabase } from "../src/lib/supabase";
@@ -20,6 +21,7 @@ import { unreadSignalCount } from "../src/lib/community-api";
 import { SignalBadge } from "../src/components/Community/SignalBadge";
 import { SignupPrompt } from "../src/components/Community/SignupPrompt";
 import logo from "../assets/logo.png";
+import launchpadIcon from "../assets/launchpad.png";
 
 const shellPanelStyle: React.CSSProperties = {
   background:
@@ -41,12 +43,22 @@ function renderNavVisual(item: NavItem, className: string) {
   if (item.imageIcon) {
     return <img src={item.imageIcon} alt="" className={`${className} h-[1em] w-[1em] object-contain`} />;
   }
-  if (!item.icon) return null;
+
+  if (!item.icon) {
+    return null;
+  }
+
   const Icon = item.icon;
   return <Icon className={className} />;
 }
 
-function LaunchpadLink({ mobile = false, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
+function LaunchpadLink({
+  mobile = false,
+  onNavigate,
+}: {
+  mobile?: boolean;
+  onNavigate?: () => void;
+}) {
   if (mobile) {
     return (
       <a
@@ -56,11 +68,12 @@ function LaunchpadLink({ mobile = false, onNavigate }: { mobile?: boolean; onNav
         onClick={onNavigate}
         className="flex items-center gap-3 rounded-xl border border-[#f0c27b]/24 bg-[linear-gradient(180deg,rgba(241,169,78,0.18),rgba(140,76,22,0.12))] px-4 py-3 text-sm font-semibold text-[#ffe3bb] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(68,28,4,0.34),0_16px_30px_rgba(45,21,4,0.24)] transition duration-300 hover:border-[#f0c27b]/36 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.24),rgba(140,76,22,0.16))] hover:text-white"
       >
-        <Rocket size={20} className="text-[#f0c27b]" />
+        <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[8px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.25)]" />
         Launchpad
       </a>
     );
   }
+
   return (
     <a
       href="https://launchpad.apro.pk"
@@ -68,7 +81,7 @@ function LaunchpadLink({ mobile = false, onNavigate }: { mobile?: boolean; onNav
       rel="noreferrer"
       className="group relative ml-2 flex items-center gap-2 rounded-full border border-[#f0c27b]/20 bg-[linear-gradient(180deg,rgba(241,169,78,0.14),rgba(124,69,21,0.1))] px-3 py-2 text-[#ffdca9] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(55,26,5,0.34),0_16px_28px_rgba(38,19,4,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#f0c27b]/34 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.2),rgba(124,69,21,0.14))] hover:text-white"
     >
-      <Rocket size={18} className="text-[#f0c27b]" />
+      <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[10px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.28)]" />
       <span className="text-[10px] font-semibold uppercase tracking-[0.24em]">Launchpad</span>
       <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
         <div className="whitespace-nowrap rounded-xl border border-[#f0c27b]/16 bg-[#18110a]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffe3bb] shadow-xl backdrop-blur-md">
@@ -236,7 +249,6 @@ export const Layout: React.FC = () => {
                     className={navItemClassName}
                   >
                     {renderNavVisual(item, iconClassName)}
-                    {item.path === "/community" && <SignalBadge unreadCount={unreadSignals} />}
                     {isActive && (
                       <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
                         item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
@@ -377,17 +389,19 @@ export const Layout: React.FC = () => {
               <div className="space-y-2">
                 {NAV_ITEMS.map((item) => {
                   const isActive = isNavItemActive(item, location.pathname);
+                  const mobileItemClassName = `flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
+                    isActive
+                      ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
+                      : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                  }`;
                   const iconClassName = `text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
+
                   return (
                     <NavLink
                       key={item.path}
                       to={item.path}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm font-semibold transition duration-300 ${
-                        isActive
-                          ? "border-violet-300/22 bg-[linear-gradient(180deg,rgba(132,97,255,0.22),rgba(98,62,192,0.14))] text-white"
-                          : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
-                      }`}
+                      className={mobileItemClassName}
                       style={navPillStyle}
                     >
                       {renderNavVisual(item, iconClassName)}

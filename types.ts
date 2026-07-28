@@ -12,9 +12,9 @@ import {
 export interface NavItem {
   label: string;
   path: string;
-  icon: IconType;
-  external?: boolean;
+  icon?: IconType;
   imageIcon?: string;
+  external?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
