@@ -13,6 +13,8 @@ export interface NavItem {
   label: string;
   path: string;
   icon: IconType;
+  external?: boolean;
+  imageIcon?: string;
 }
 
 export const NAV_ITEMS: NavItem[] = [
