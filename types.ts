@@ -7,6 +7,7 @@ import {
   IoPeople,
   IoDocumentText,
   IoRocket,
+  IoPricetags,
 } from "react-icons/io5";
 
 export interface NavItem {
@@ -15,14 +16,14 @@ export interface NavItem {
   icon?: IconType;
   imageIcon?: string;
   external?: boolean;
+  dividerBefore?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Home", path: "/", icon: IoHome },
   { label: "APRO Works", path: "/apro-works", icon: IoDesktop },
+  { label: "Pricing", path: "/pricing", icon: IoPricetags },
   { label: "About APRO", path: "/about", icon: IoInformationCircle },
-  { label: "Events", path: "/events", icon: IoCalendar },
+  { label: "Events", path: "/events", icon: IoCalendar, dividerBefore: true },
   { label: "Community", path: "/community", icon: IoRocket },
-  { label: "Membership", path: "/membership", icon: IoPeople },
-  { label: "Legal", path: "/legal", icon: IoDocumentText },
 ];

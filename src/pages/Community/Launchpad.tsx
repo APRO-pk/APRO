@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Rocket, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { fetchLaunchpad, setPostVote, saveFeedPosition, loadFeedPosition, resetSeenSet } from '../../lib/community-api';
+import { fetchLaunchpad, setPostVote, saveFeedPosition, resetSeenSet } from '../../lib/community-api';
 import { LaunchCard } from '../../components/Community/LaunchCard';
 import { CommunityNavbar } from '../../components/Community/CommunityNavbar';
 import type { CommunityPost } from '../../lib/community-types';
@@ -59,19 +59,11 @@ const Launchpad: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Restore scroll position after feed renders
+  // Scroll to top on load
   useEffect(() => {
-    if (!feedReady || !userId || !scrollRef.current) return;
-    loadFeedPosition(userId).then(savedId => {
-      if (!savedId || !scrollRef.current) return;
-      for (const el of Array.from(scrollRef.current.children)) {
-        if ((el as HTMLElement).dataset.postId === savedId) {
-          (el as HTMLElement).scrollIntoView({ behavior: 'auto' });
-          break;
-        }
-      }
-    });
-  }, [feedReady, userId]);
+    if (!feedReady || !scrollRef.current) return;
+    scrollRef.current.scrollTop = 0;
+  }, [feedReady]);
 
   // Save position every 30s
   useEffect(() => {

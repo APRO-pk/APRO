@@ -83,6 +83,11 @@ export async function updateProject(projectId: string, updates: { name?: string;
   if (error) throw error;
 }
 
+export async function deleteProject(projectId: string): Promise<void> {
+  const { error } = await supabase.from('projects').delete().eq('id', projectId);
+  if (error) throw error;
+}
+
 export async function fetchPublicProjects(limit = 20): Promise<Project[]> {
   const { data, error } = await supabase
     .from('projects')

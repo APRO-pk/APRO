@@ -48,11 +48,9 @@ export async function ensureProfile(userId: string) {
     if (data.flag) flagCache.set(userId, data.flag);
     return;
   }
-  const session = await supabase.auth.getSession();
-  const email = session.data.session?.user?.email ?? '';
-  const name = email ? email.split('@')[0] : userId.slice(0, 8);
-  await supabase.from('community_profiles').upsert({ id: userId, display_name: name });
-  profileCache.set(userId, name);
+  const fallback = userId.slice(0, 8);
+  await supabase.from('community_profiles').upsert({ id: userId, display_name: fallback });
+  profileCache.set(userId, fallback);
 }
 
 export async function getDisplayName(userId: string): Promise<string> {
@@ -69,6 +67,10 @@ export async function getDisplayName(userId: string): Promise<string> {
     return data.display_name;
   }
   return userId.slice(0, 8);
+}
+
+export function getCachedDisplayName(userId: string): string {
+  return profileCache.get(userId) || userId;
 }
 
 export function getProfileFlag(userId: string): string {

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { X, Loader2 } from 'lucide-react';
 import { createCrew } from '../../lib/crew-api';
+import { useTokens } from '../../lib/token-utils';
+import { UpgradeRequiredModal } from './TokenModals';
 import { FlagPicker } from './FlagPicker';
 
 interface Props {
@@ -15,11 +17,14 @@ export function CreateCrewModal({ open, onClose, userId, onCreated }: Props) {
   const [description, setDescription] = useState('');
   const [flag, setFlag] = useState('');
   const [creating, setCreating] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { isFree } = useTokens(userId);
 
   if (!open) return null;
 
   const handleCreate = async () => {
     if (!name.trim()) return;
+    if (isFree) { setUpgradeModalOpen(true); return; }
     setCreating(true);
     try {
       await createCrew(name.trim(), description.trim(), flag, userId);
@@ -96,6 +101,7 @@ export function CreateCrewModal({ open, onClose, userId, onCreated }: Props) {
           </button>
         </div>
       </div>
+      <UpgradeRequiredModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} action="Creating a crew" />
     </div>
   );
 }

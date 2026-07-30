@@ -6,6 +6,8 @@ import { CommunityNavbar } from '../../components/Community/CommunityNavbar';
 import { ProjectDetail } from '../../components/Community/ProjectDetail';
 import { fetchCrewProjects, fetchUserProjects, fetchPublicProjects, createProject, fetchFollowedCrews, fetchFollowedProjects, isTrackingProject, fetchUserInvites, respondToInvite, fetchProject } from '../../lib/missions-api';
 import { fetchUserCrew } from '../../lib/crew-api';
+import { useTokens } from '../../lib/token-utils';
+import { UpgradeRequiredModal } from '../../components/Community/TokenModals';
 import type { Project, TrackedProject, ProjectInvite } from '../../lib/missions-types';
 
 const Missions = () => {
@@ -25,6 +27,8 @@ const Missions = () => {
   const [trackedProjects, setTrackedProjects] = useState<TrackedProject[]>([]);
   const [invites, setInvites] = useState<ProjectInvite[]>([]);
   const [responding, setResponding] = useState<string | null>(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { isFree } = useTokens(userId ?? null);
 
   useEffect(() => {
     const init = async () => {
@@ -100,6 +104,7 @@ const Missions = () => {
 
   const handleCreate = async () => {
     if (!newName.trim() || !selectedOwner || !userId) return;
+    if (isFree) { setUpgradeModalOpen(true); return; }
     setCreating(true);
     try {
       const isCrew = selectedOwner.startsWith('crew_');
@@ -151,8 +156,26 @@ const Missions = () => {
     const handleBack = async () => {
       setSelectedProject(null);
       if (userId) {
+        // Re-fetch projects to reflect any deletions
+        const crews = await fetchUserCrew(userId);
+        const crewId = crews?.id;
+        const followedCrewIds = await fetchFollowedCrews(userId);
+        const allProjects: Project[] = [];
+        const cids = new Set<string>();
+        if (crewId) cids.add(crewId);
+        for (const cid of followedCrewIds) cids.add(cid);
+        for (const cid of cids) {
+          const cp = await fetchCrewProjects(cid);
+          for (const p of cp) allProjects.push(p);
+        }
+        const up = await fetchUserProjects(userId);
+        for (const p of up) allProjects.push(p);
+        const seen = new Set<string>();
+        const unique = allProjects.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
+        setProjects(unique);
+
         const tracked = await fetchFollowedProjects(userId);
-        const ownIds = new Set(projects.map(p => p.id));
+        const ownIds = new Set(unique.map(p => p.id));
         setTrackedProjects(tracked.filter(t => !ownIds.has(t.id)));
       }
     };
@@ -179,6 +202,7 @@ const Missions = () => {
   }
 
   return (
+    <>
     <div className="min-h-screen bg-[#05070d]">
       <CommunityNavbar />
       <div className="max-w-2xl mx-auto px-4 pb-20 lg:pb-8">
@@ -398,6 +422,8 @@ const Missions = () => {
         )}
       </div>
     </div>
+      <UpgradeRequiredModal open={upgradeModalOpen} onClose={() => setUpgradeModalOpen(false)} action="Creating a project" />
+    </>
   );
 };
 

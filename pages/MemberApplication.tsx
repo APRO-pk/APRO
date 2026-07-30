@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { FormShell, formInputClass, formLabelClass } from "../components/PageScaffold";
@@ -8,14 +9,13 @@ const inputBase =
 
 const initialFormData = {
   fullName: "",
+  username: "",
   dob: "",
-  cnic: "",
   phone: "",
   email: "",
   institution: "",
   majorOrTitle: "",
   certLevel: "",
-  emergencyContact: "",
   explosivesHistory: "",
   antiWeaponization: "",
   legalAgree: false,
@@ -24,20 +24,26 @@ const initialFormData = {
   confirmPassword: "",
 };
 
-const StudentApplication: React.FC = () => {
+const MemberApplication: React.FC = () => {
   const today = new Date().toLocaleDateString();
 
   const [formData, setFormData] = useState(initialFormData);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
   const [authSession, setAuthSession] = useState<Session | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameTaken, setUsernameTaken] = useState(false);
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const checkUsernameTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     let mounted = true;
 
     void supabase.auth.getSession().then(({ data, error }) => {
       if (error) {
-        console.error("[StudentApplication] Failed to load initial session", error);
+        console.error("[MemberApplication] Failed to load initial session", error);
         return;
       }
 
@@ -59,6 +65,31 @@ const StudentApplication: React.FC = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  // Username availability debounce
+  useEffect(() => {
+    const u = formData.username;
+    if (u.length < 3) { setUsernameTaken(false); setCheckingUsername(false); return; }
+    if (usernameError) { setCheckingUsername(false); return; }
+    if (checkUsernameTimerRef.current) clearTimeout(checkUsernameTimerRef.current);
+    setCheckingUsername(true);
+    checkUsernameTimerRef.current = setTimeout(async () => {
+      try {
+        const { data } = await supabase.from('community_profiles').select('id').eq('display_name', u).maybeSingle();
+        setUsernameTaken(!!data);
+      } catch { setUsernameTaken(false); }
+      setCheckingUsername(false);
+    }, 400);
+    return () => { if (checkUsernameTimerRef.current) clearTimeout(checkUsernameTimerRef.current); };
+  }, [formData.username, usernameError]);
+
+  const handleUsernameChange = (value: string) => {
+    const cleaned = value.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 20);
+    setFormData((prev) => ({ ...prev, username: cleaned }));
+    if (!cleaned) setUsernameError('Username is required');
+    else if (cleaned.length < 3) setUsernameError('Username must be at least 3 characters');
+    else setUsernameError(null);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -90,44 +121,44 @@ const StudentApplication: React.FC = () => {
       return currentSession;
     }
 
-    console.info("[StudentApplication] No session found. Creating auth account before application insert.");
+    console.info("[MemberApplication] No session found. Creating auth account before application insert.");
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
         data: {
           full_name: formData.fullName,
-          member_type: "STUDENT",
+          member_type: "MEMBER",
         },
       },
     });
 
     if (authError) {
-      console.error("[StudentApplication] signUp failed", authError);
+      console.error("[MemberApplication] signUp failed", authError);
       throw authError;
     }
 
     if (authData.session) {
-      console.info("[StudentApplication] signUp returned an active session.");
+      console.info("[MemberApplication] signUp returned an active session.");
       setAuthSession(authData.session);
       return authData.session;
     }
 
-    console.info("[StudentApplication] signUp returned no session. Attempting password sign-in.");
+    console.info("[MemberApplication] signUp returned no session. Attempting password sign-in.");
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: formData.email,
       password: formData.password,
     });
 
     if (signInError) {
-      console.error("[StudentApplication] signInWithPassword after signUp failed", signInError);
+      console.error("[MemberApplication] signInWithPassword after signUp failed", signInError);
       throw new Error(
         "Account was created, but no authenticated session is available yet. Check Supabase email confirmation settings or sign in before submitting."
       );
     }
 
     if (!signInData.session) {
-      console.error("[StudentApplication] signInWithPassword succeeded without a session.", signInData);
+      console.error("[MemberApplication] signInWithPassword succeeded without a session.", signInData);
       throw new Error("Authenticated session was not established. Please sign in and try again.");
     }
 
@@ -138,6 +169,23 @@ const StudentApplication: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
+
+    if (!formData.username || formData.username.length < 3) {
+      setMessage("Username must be at least 3 characters.");
+      return;
+    }
+    if (usernameError) {
+      setMessage(usernameError);
+      return;
+    }
+    if (usernameTaken) {
+      setMessage("Username is already taken.");
+      return;
+    }
+    if (checkingUsername) {
+      setMessage("Please wait while we check username availability.");
+      return;
+    }
 
     if (formData.password.length < 6) {
       setMessage("Password must be at least 6 characters.");
@@ -170,6 +218,15 @@ const StudentApplication: React.FC = () => {
         throw new Error("The signed-in account email does not match the application email.");
       }
 
+      // Create community profile with username
+      const { error: profileError } = await supabase
+        .from('community_profiles')
+        .upsert({ id: authUserId, display_name: formData.username }, { onConflict: 'id' });
+      if (profileError) {
+        console.error("[MemberApplication] community_profiles upsert failed", profileError);
+        throw profileError;
+      }
+
       // 2) Create members row
       const memberInsertPayload = {
         auth_user_id: authUserId,
@@ -177,10 +234,10 @@ const StudentApplication: React.FC = () => {
         full_name: formData.fullName,
         email: formData.email,
         phone: formData.phone,
-        member_type: "STUDENT",
+        member_type: "MEMBER",
         account_status: "PENDING",
       };
-      console.info("[StudentApplication] Inserting member row", memberInsertPayload);
+      console.info("[MemberApplication] Inserting member row", memberInsertPayload);
 
       const { data: memberData, error: memberError } = await supabase
         .from("members")
@@ -189,7 +246,7 @@ const StudentApplication: React.FC = () => {
         .single();
 
       if (memberError) {
-        console.error("[StudentApplication] members insert failed", memberError);
+        console.error("[MemberApplication] members insert failed", memberError);
         throw memberError;
       }
 
@@ -200,7 +257,7 @@ const StudentApplication: React.FC = () => {
         .from("applications")
         .insert([
           {
-            applicant_type: "STUDENT",
+            applicant_type: "MEMBER",
             member_id: createdMemberRowId,
             status: "PENDING",
           },
@@ -209,7 +266,7 @@ const StudentApplication: React.FC = () => {
         .single();
 
       if (applicationError) {
-        console.error("[StudentApplication] applications insert failed", applicationError);
+        console.error("[MemberApplication] applications insert failed", applicationError);
         throw applicationError;
       }
 
@@ -238,7 +295,7 @@ const StudentApplication: React.FC = () => {
         ]);
 
       if (studentError) {
-        console.error("[StudentApplication] student_details insert failed", studentError);
+        console.error("[MemberApplication] student_details insert failed", studentError);
         throw studentError;
       }
 
@@ -247,12 +304,12 @@ const StudentApplication: React.FC = () => {
       setAuthSession(null);
 
       setMessage(
-        "Student application submitted successfully. Your account has been created, but access will remain pending until admin approval."
+        "Application submitted successfully. Your account has been created, but access will remain pending until admin approval."
       );
 
       resetForm();
     } catch (error: any) {
-      console.error("[StudentApplication] Submission failed", {
+      console.error("[MemberApplication] Submission failed", {
         error,
         createdMemberRowId,
         createdApplicationId,
@@ -271,9 +328,9 @@ const StudentApplication: React.FC = () => {
 
   return (
     <FormShell
-      eyebrow="Student Application"
-      title="Student / Individual access."
-      description="Fill the application carefully. Accounts created here remain pending until APRO admin review is complete."
+      eyebrow="Member Application"
+      title="Create account."
+      description="Fill the application carefully. Accounts created here remain pending until admin review is complete."
     >
           <form className="space-y-10" onSubmit={handleSubmit}>
             <section>
@@ -284,7 +341,7 @@ const StudentApplication: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <div>
                   <label className={formLabelClass}>
-                    Full Name (as per CNIC)
+                    Full Name
                   </label>
                   <input
                     name="fullName"
@@ -312,30 +369,43 @@ const StudentApplication: React.FC = () => {
 
                 <div>
                   <label className={formLabelClass}>
-                    CNIC / B-Form Number
-                  </label>
-                  <input
-                    name="cnic"
-                    placeholder="cnic"
-                    className={inputBase}
-                    required
-                    value={formData.cnic}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Phone Number
+                    Phone Number (optional)
                   </label>
                   <input
                     name="phone"
                     placeholder="phone"
                     className={inputBase}
-                    required
                     value={formData.phone}
                     onChange={handleChange}
                   />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className={formLabelClass}>
+                    Username
+                  </label>
+                  <input
+                    name="username"
+                    placeholder="your_username"
+                    value={formData.username}
+                    onChange={(e) => handleUsernameChange(e.target.value)}
+                    maxLength={20}
+                    className={inputBase}
+                    required
+                  />
+                  {usernameError && (
+                    <p className="text-[11px] text-red-400 mt-1">{usernameError}</p>
+                  )}
+                  {usernameTaken && !usernameError && (
+                    <p className="text-[11px] text-red-400 mt-1">Username already taken</p>
+                  )}
+                  {checkingUsername && (
+                    <p className="text-[11px] text-slate-500 mt-1">Checking availability...</p>
+                  )}
+                  {!usernameError && !usernameTaken && !checkingUsername && formData.username.length >= 3 && (
+                    <p className="text-[11px] text-emerald-400 mt-1">Username available</p>
+                  )}
+                  <p className="text-[10px] text-slate-500 mt-1">3-20 chars: lowercase letters, numbers, _, -, and .</p>
                 </div>
 
                 <div className="md:col-span-2">
@@ -357,107 +427,44 @@ const StudentApplication: React.FC = () => {
 
             <section>
               <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
-                Academic / Professional Details
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className={formLabelClass}>
-                    Institution / Company
-                  </label>
-                  <input
-                    name="institution"
-                    placeholder="institution"
-                    className={inputBase}
-                    required
-                    value={formData.institution}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Major / Job Title
-                  </label>
-                  <input
-                    name="majorOrTitle"
-                    placeholder="title"
-                    className={inputBase}
-                    required
-                    value={formData.majorOrTitle}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Current Certification Level
-                  </label>
-                  <select
-                    name="certLevel"
-                    className={inputBase}
-                    required
-                    value={formData.certLevel}
-                    onChange={handleChange}
-                  >
-                    <option value="" disabled>
-                      Select level
-                    </option>
-                    <option value="NONE">None</option>
-                    <option value="LEVEL_1">Level 1</option>
-                    <option value="LEVEL_2">Level 2</option>
-                    <option value="LEVEL_3">Level 3</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Emergency Contact (Name & Relation)
-                  </label>
-                  <input
-                    name="emergencyContact"
-                    placeholder="e.g., Ahmad (Brother)"
-                    className={inputBase}
-                    required
-                    value={formData.emergencyContact}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
                 Account Setup
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
+                <div className="relative">
                   <label className={formLabelClass}>
                     Password
                   </label>
                   <input
-                    type="password"
+                    type={showPassword ? "text" : "password"}
                     name="password"
                     className={inputBase}
                     required
                     value={formData.password}
                     onChange={handleChange}
                   />
+                  <button type="button" onClick={() => setShowPassword(v => !v)}
+                    className="absolute right-3 top-[38px] text-slate-500 hover:text-slate-300">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
 
-                <div>
+                <div className="relative">
                   <label className={formLabelClass}>
                     Confirm Password
                   </label>
                   <input
-                    type="password"
+                    type={showConfirmPassword ? "text" : "password"}
                     name="confirmPassword"
                     className={inputBase}
                     required
                     value={formData.confirmPassword}
                     onChange={handleChange}
                   />
+                  <button type="button" onClick={() => setShowConfirmPassword(v => !v)}
+                    className="absolute right-3 top-[38px] text-slate-500 hover:text-slate-300">
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
               </div>
             </section>
@@ -623,8 +630,8 @@ const StudentApplication: React.FC = () => {
 
             <div className="border-t border-white/10 pt-6 text-center">
               <p className="text-xs text-slate-400">
-                Your application will be reviewed manually. Your account will be created now, but
-                access will remain pending until approval.
+                Your application may be reviewed manually. Your account will be created now, but
+                access might remain pending until approval.
               </p>
             </div>
           </form>
@@ -632,4 +639,4 @@ const StudentApplication: React.FC = () => {
   );
 };
 
-export default StudentApplication;
+export default MemberApplication;

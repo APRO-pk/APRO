@@ -32,6 +32,15 @@ const LaunchDetail: React.FC = () => {
       setUserVote(postData.user_vote ?? null);
 
       incrementAltitude(id);
+      if (uid) {
+        try {
+          const { data: rows } = await supabase.rpc('increment_posts_viewed', { uid });
+          const row = Array.isArray(rows) ? rows[0] : rows;
+          if (row?.tokens_deducted) {
+            window.dispatchEvent(new CustomEvent('tokens-updated'));
+          }
+        } catch {}
+      }
       setLoading(false);
     };
     init();
