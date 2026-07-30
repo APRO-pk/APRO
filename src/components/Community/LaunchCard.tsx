@@ -3,7 +3,9 @@ import { MessageCircle, Eye, Repeat2, Rocket, PenLine, ExternalLink, Send, X, Mo
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import type { CommunityPost, CommunityComment } from '../../lib/community-types';
-import { getDisplayName, getProfileAvatar, getProfileFlag, hydrateProfiles, createLaunch, fetchComments, createComment, deleteComment, setCommentVote, deleteLaunch, isFollowing, toggleFollow } from '../../lib/community-api';
+import { getDisplayName, getCachedDisplayName, getProfileAvatar, getProfileFlag, hydrateProfiles, createLaunch, fetchComments, createComment, deleteComment, setCommentVote, deleteLaunch, isFollowing, toggleFollow } from '../../lib/community-api';
+import { useTokens } from '../../lib/token-utils';
+import { InsufficientTokensModal } from './TokenModals';
 import { FlagIcon } from './FlagIcon';
 import { IgniteButton } from './IgniteButton';
 import { AbortButton } from './AbortButton';
@@ -86,12 +88,16 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
   const [dotsOpen, setDotsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [authAction, setAuthAction] = useState<string | null>(null);
+  const [insufficientModalOpen, setInsufficientModalOpen] = useState(false);
+  const { deduct, isFree, canAfford } = useTokens(userId ?? null);
 
   const doRelaunch = async (text?: string) => {
     if (!userId) return;
+    if (isFree && !canAfford(1)) { setInsufficientModalOpen(true); return; }
     setRelaunching(true);
     try {
       await createLaunch(userId, text ?? '', [], post.id);
+      if (isFree) await deduct(1);
       setMenuOpen(false);
       setShowTextPanel(false);
       setRelaunchText('');
@@ -135,7 +141,9 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
 
   const handleTrackToggle = async () => {
     if (!userId) return;
+    if (isFree && !canAfford(1)) { setInsufficientModalOpen(true); return; }
     const nowFollowing = await toggleFollow(userId, post.author_id);
+    if (isFree && nowFollowing) await deduct(1);
     setIsTracking(nowFollowing);
   };
 
@@ -152,6 +160,8 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
 
   const handleNewComment = async () => {
     if (!newComment.trim() || !userId) return;
+    if (isFree && !canAfford(1)) { setInsufficientModalOpen(true); return; }
+    if (isFree) await deduct(1);
     await createComment(userId, post.id, newComment.trim());
     setNewComment('');
     const fresh = await fetchComments(post.id, userId);
@@ -160,6 +170,8 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
 
   const handleReply = async (parentId: string, content: string) => {
     if (!userId) return;
+    if (isFree && !canAfford(1)) { setInsufficientModalOpen(true); return; }
+    if (isFree) await deduct(1);
     await createComment(userId, post.id, content, parentId);
     const fresh = await fetchComments(post.id, userId);
     setComments(fresh);
@@ -211,7 +223,7 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-1.5 min-w-0">
                 <Link
-                  to={"/community/user/" + post.author_id}
+                  to={"/community/user/" + getCachedDisplayName(post.author_id)}
                   className="flex items-center gap-2 group min-w-0 shrink-0"
                 >
                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-cyan-500 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">
@@ -297,7 +309,7 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
                 )}
                 <div className="ml-4 pl-3 border-l-2 border-cyan-500/30 space-y-1.5">
                   <Link
-                    to={"/community/user/" + post.relaunch_post.author_id}
+                    to={"/community/user/" + getCachedDisplayName(post.relaunch_post.author_id)}
                     className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
                   >
                     <ProfileName id={post.relaunch_post.author_id} />
@@ -520,6 +532,7 @@ export function LaunchCard({ post, userVote, onVote, userId, onDelete }: Props) 
       )}
 
       <SignupPrompt action={authAction} onClose={() => setAuthAction(null)} />
+      <InsufficientTokensModal open={insufficientModalOpen} onClose={() => setInsufficientModalOpen(false)} />
     </>
   );
 }

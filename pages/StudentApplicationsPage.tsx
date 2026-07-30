@@ -159,9 +159,9 @@ const StudentApplicationsPage: React.FC = () => {
 
   return (
     <AdminShell
-      eyebrow="Admin / Students"
-      title="Student Applications"
-      description="Review student applications submitted to APRO."
+      eyebrow="Admin / Members"
+      title="Member Applications"
+      description="Review member applications submitted to APRO."
       actions={
         <>
           <GhostButton to="/admin/dashboard">Back to dashboard</GhostButton>
@@ -186,9 +186,9 @@ const StudentApplicationsPage: React.FC = () => {
       <div className="mt-6">
         {actionError ? <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{actionError}</div> : null}
         {loading ? (
-          <SurfacePanel>Loading student applications...</SurfacePanel>
+          <SurfacePanel>Loading member applications...</SurfacePanel>
         ) : applications.length === 0 ? (
-          <SurfacePanel>No student applications found for this filter.</SurfacePanel>
+          <SurfacePanel>No member applications found for this filter.</SurfacePanel>
         ) : (
           <div className="space-y-4">
             {applications.map((app) => {
@@ -267,7 +267,7 @@ const StudentDetailsModal: React.FC<{
       <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0c101a] shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 p-6">
           <div>
-            <h2 className="text-2xl font-bold text-white">Student Application Details</h2>
+            <h2 className="text-2xl font-bold text-white">Member Application Details</h2>
             <p className="mt-1 text-sm text-slate-400">Application ID: {application.id}</p>
           </div>
           <button onClick={onClose} className="text-sm font-semibold text-slate-400 hover:text-white">Close</button>

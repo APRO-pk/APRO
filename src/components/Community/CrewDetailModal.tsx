@@ -4,6 +4,8 @@ import { X, Users, Shield, Crown, UserMinus, UserPlus, Pencil, Check, X as XIcon
 import { fetchCrewMembers, fetchUserRole, requestJoin, fetchPendingRequests, acceptJoinRequest, rejectJoinRequest, updateCrew } from '../../lib/crew-api';
 import { FlagPicker } from './FlagPicker';
 import { FlagIcon } from './FlagIcon';
+import { useTokens } from '../../lib/token-utils';
+import { InsufficientTokensModal, UpgradeRequiredModal } from './TokenModals';
 import type { Crew, CrewMember, CrewJoinRequest } from '../../lib/crew-types';
 
 interface Props {
@@ -22,6 +24,9 @@ export function CrewDetailModal({ open, crew, userId, hasApplied, onClose, onJoi
   const [userRole, setUserRole] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<CrewJoinRequest[]>([]);
   const [loading, setLoading] = useState(false);
+  const [insufficientModalOpen, setInsufficientModalOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const { isFree, canAfford, deduct } = useTokens(userId ?? null);
   const [joining, setJoining] = useState(false);
 
   const [editing, setEditing] = useState(false);
@@ -67,9 +72,11 @@ export function CrewDetailModal({ open, crew, userId, hasApplied, onClose, onJoi
 
   const handleJoin = async () => {
     if (!userId) return;
+    if (isFree && !canAfford(2)) { setInsufficientModalOpen(true); return; }
     setJoining(true);
     try {
       await requestJoin(crew.id, userId);
+      if (isFree) await deduct(2);
       onJoined();
       onClose();
     } catch (err) {
@@ -312,6 +319,7 @@ export function CrewDetailModal({ open, crew, userId, hasApplied, onClose, onJoi
           </div>
         )}
       </div>
+      <InsufficientTokensModal open={insufficientModalOpen} onClose={() => setInsufficientModalOpen(false)} />
     </div>
   );
 }

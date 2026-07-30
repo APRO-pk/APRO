@@ -1,14 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Download, ArrowRight, Sparkles, Monitor, Check, Flame, Rocket, Crown } from "lucide-react";
+import { Download, ArrowRight, Monitor } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
-import { PageScaffold, SectionBand, SurfacePanel } from "../components/PageScaffold";
-import IconCloud from "../components/IconCloud";
-import { NumberTicker } from "../components/ui/number-ticker";
-import { PricingCursor } from "../components/PricingCursor";
+import { PageScaffold, SectionBand } from "../components/PageScaffold";
 import { BetaPopup } from "../components/BetaPopup";
-import { useCurrency } from "../src/context/CurrencyContext";
-import { motion } from "framer-motion";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 gsap.registerPlugin(ScrollTrigger);
@@ -103,9 +98,7 @@ const AproWorks: React.FC = () => {
   const [toolProgress, setToolProgress] = useState(0);
   const maxProgress = apps.length - 1 + 1.08;
   const toolsRef = useRef<HTMLDivElement>(null);
-  const pricingRef = useRef<HTMLDivElement | null>(null);
   const [betaPopupOpen, setBetaPopupOpen] = useState(false);
-  const { currency, convert } = useCurrency();
 
   // Hero GSAP ScrollTrigger — pin + scrub
   useEffect(() => {
@@ -173,6 +166,24 @@ const AproWorks: React.FC = () => {
           0% { transform: translateY(0); }
           100% { transform: translateY(200px); }
         }
+        @keyframes dash-scroll {
+          to { stroke-dashoffset: -100; }
+        }
+        .animate-dash {
+          animation: dash-scroll 1.5s linear infinite;
+        }
+        @keyframes trace-flow {
+          to { stroke-dashoffset: -32; }
+        }
+        @keyframes trace-flow-fast {
+          to { stroke-dashoffset: -32; }
+        }
+        .animate-trace {
+          animation: trace-flow 0.8s linear infinite;
+        }
+        .animate-trace-fast {
+          animation: trace-flow-fast 0.4s linear infinite;
+        }
       `}</style>
 
       {/* Hero */}
@@ -233,7 +244,7 @@ const AproWorks: React.FC = () => {
         </div>
       </section>
 
-      <div className="after-hero" style={{
+      <div className="after-hero -mt-[250px]" style={{
         opacity: showRest ? 1 : 0,
         transition: "opacity 0.8s ease",
         pointerEvents: showRest ? "auto" : "none",
@@ -242,25 +253,16 @@ const AproWorks: React.FC = () => {
       <SectionBand className="mt-6">
         <div className="text-center">
           <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Available Applications</div>
-          <h2 className="mt-3 text-[clamp(2.4rem,4vw,4.4rem)] font-bold leading-[0.94] tracking-[-0.06em] text-white">
+          <h2 className="my-2 text-[clamp(2.4rem,4vw,4.4rem)] font-bold leading-[0.94] tracking-[-0.06em] text-white">
             One launcher, many tools.
           </h2>
-          <p className="mt-4 mx-auto max-w-2xl text-base leading-8 text-slate-300/76">
+          <p className="mt-2 mx-auto max-w-2xl text-base leading-8 text-slate-300/76">
             Every application ships inside APRO Works. Download the launcher once and access the full toolset.
           </p>
         </div>
 
-        {/* App Icon Cloud */}
-        <div className="relative mt-16 mb-8">
-          <div className="relative mx-auto flex items-center justify-center">
-            <IconCloud images={apps.map(a => a.logo)} className="w-full max-w-[650px]" />
-            <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
-              <div className="flex h-24 w-24 md:h-28 md:w-28 items-center justify-center rounded-full border-2 border-violet-400/40 bg-[linear-gradient(180deg,rgba(123,44,191,0.2),rgba(46,18,90,0.3))] shadow-[0_0_40px_rgba(123,44,191,0.15)]" style={{ animation: "aproFloat 4s ease-in-out infinite" }}>
-                <img src={aproWorksLogo} alt="APRO Works" className="h-14 w-14 object-contain" />
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* App Orbit — Net + Stationary Logos + Terminal Hover */}
+        <AppOrbit apps={apps} aproLogo={aproWorksLogo} />
 
         {/* Launch Trajectory */}
         <div ref={trajectoryRef} className="relative mt-10 mb-2 overflow-visible min-h-[180px] md:min-h-[240px]">
@@ -378,7 +380,7 @@ const AproWorks: React.FC = () => {
       <section ref={toolsRef} className="mx-auto w-full max-w-[1880px] h-screen px-5 md:px-8 xl:px-12">
         <div className="relative h-full overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,14,28,0.92),rgba(8,11,18,0.98))] shadow-[inset_1px_1px_0_rgba(255,255,255,0.04),0_22px_48px_rgba(4,7,16,0.24)]">
           {/* Sticky header */}
-          <div className="pt-10 md:pt-14 pb-4">
+          <div className="pt-[5.25rem] md:pt-[7.5rem] pb-4">
             <div className="text-center">
               <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Toolset Overview</div>
               <h2 className="mt-3 text-[clamp(2rem,3.4vw,3.8rem)] font-bold leading-[0.94] tracking-[-0.06em] text-white">
@@ -480,157 +482,43 @@ const AproWorks: React.FC = () => {
       </section>
       </div>  {/* end after-hero */}
 
-      {/* Pricing */}
+      {/* Pricing Panel */}
       <SectionBand className="bg-[linear-gradient(180deg,rgba(12,14,28,0.95),rgba(8,11,18,0.98))]">
-        <div ref={pricingRef} className="cursor-none">
-          <PricingCursor containerRef={pricingRef} />
-          <motion.div
-          initial={{ opacity: 0, y: 60 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-80px" }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
-          className="py-20 md:py-28"
+        <Link to="/pricing"
+          className="group block rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(20,24,37,0.9),rgba(8,10,18,0.95))] p-8 md:p-12 transition-all duration-300 hover:border-violet-500/30 hover:-translate-y-0.5"
         >
-          <div className="text-center mb-16">
-            <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400 mb-4">Pricing</div>
-            <h2 className="text-[clamp(2.4rem,4vw,4.4rem)] font-bold leading-[0.94] tracking-[-0.06em] text-white">
-              Choose your launch tier.
-            </h2>
-            <p className="mt-4 mx-auto max-w-xl text-base leading-8 text-slate-300/76">
-              Scale from hobby rocketry to professional aerospace engineering.
-            </p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="text-center md:text-left">
+              <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400 mb-2">Pricing</div>
+              <h2 className="text-[clamp(1.8rem,3vw,2.8rem)] font-bold leading-[0.94] tracking-[-0.06em] text-white">
+                Choose your launch tier.
+              </h2>
+              <p className="mt-3 max-w-xl text-base leading-8 text-slate-300/76">
+                Scale from hobby rocketry to professional aerospace engineering. Individual, team, institute, and industry plans available.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <span className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-3.5 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[0_8px_24px_rgba(61,28,120,0.3)] transition-all duration-300 group-hover:-translate-y-0.5 group-hover:shadow-[0_12px_32px_rgba(61,28,120,0.45)]">
+                View Pricing
+                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+              </span>
+            </div>
           </div>
-
-          <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4 max-w-[1400px] mx-auto px-4">
-            {[
-              {
-                name: "Ignition",
-                price: 0,
-                suffix: "/month",
-                icon: <Sparkles size={20} />,
-                color: "from-slate-400/20 to-transparent",
-                border: "border-white/8",
-                textColor: "text-slate-300",
-                features: [
-                  "R-Design",
-                  "120 Community Tokens / mo",
-                  "Feedback & Bug Reports",
-                  "Browse community channels",
-                  "Events (Viewing only)",
-                ],
-              },
-              {
-                name: "Thruster",
-                price: 8.49,
-                suffix: "/month",
-                icon: <Flame size={20} />,
-                color: "from-violet-500/20 to-transparent",
-                border: "border-violet-500/30",
-                textColor: "text-violet-200",
-                popular: true,
-                features: [
-                  "Everything in Ignition",
-                  "Burn & Geo Modeler, Propulsor, HexaDOF, RSD, RocketForge",
-                  "Unlimited community tokens",
-                  "Badges & Tags",
-                  "All Community Channel Features",
-                  "Event Participation",
-                  "Team Management & Weekly Challenges",
-                ],
-              },
-              {
-                name: "Afterburner",
-                price: 14.99,
-                suffix: "/month",
-                icon: <Rocket size={20} />,
-                color: "from-cyan-500/20 to-transparent",
-                border: "border-cyan-500/30",
-                textColor: "text-cyan-200",
-                features: [
-                  "Everything in Thruster",
-                  "Industry applications (external)",
-                  "Priority Support",
-                  "All badges & tags",
-                  "Market access",
-                  "Event Hosting & Management",
-                ],
-              },
-              {
-                name: "Payload Max",
-                price: 36.95,
-                suffix: "/month",
-                icon: <Crown size={20} />,
-                color: "from-amber-500/20 to-transparent",
-                border: "border-amber-500/30",
-                textColor: "text-amber-200",
-                features: [
-                  "Everything in Afterburner",
-                  "1-on-1 session booking (3 free/mo)",
-                  "Extra sessions $6.99 ea",
-                  "5% discount on all Market products",
-                ],
-              },
-            ].map((tier, i) => {
-              const dp = tier.price > 0 ? convert(tier.price) : 0;
-              const whole = Math.floor(dp);
-              const dec = String(Math.round(dp % 1 * 100)).padStart(2, '0');
-              return (
-              <motion.div
-                key={tier.name}
-                data-pricing-card
-                initial={{ opacity: 0, y: 40 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-60px" }}
-                transition={{ duration: 0.5, delay: i * 0.1, ease: "easeOut" }}
-                className={`relative flex flex-col rounded-2xl border bg-[linear-gradient(180deg,rgba(20,24,37,0.9),rgba(8,10,18,0.95))] p-6 md:p-8 shadow-[0_8px_32px_rgba(4,7,16,0.3)] ${tier.border} ${tier.popular ? "ring-1 ring-violet-500/40" : ""} cursor-none`}
-              >
-                {tier.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-600 px-4 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-white shadow-[0_4px_12px_rgba(123,44,191,0.4)]">
-                    Most Popular
-                  </div>
-                )}
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br ${tier.color} ${tier.textColor}`}>
-                    {tier.icon}
-                  </div>
-                  <h3 className="text-lg font-bold text-white">{tier.name}</h3>
-                </div>
-                <div className="mb-6">
-                  {tier.price > 0 ? (
-                    <span className="text-[clamp(2.2rem,3.5vw,3rem)] font-extrabold tracking-tight text-white tabular-nums">
-                      <span className="text-lg font-medium text-slate-400 align-top mr-0.5">{currency.symbol}</span>
-                      <NumberTicker value={whole} decimalPlaces={0} className="text-inherit" />
-                      <span className="text-[0.45em] font-medium text-slate-500 align-top">.{dec}</span>
-                      <span className="ml-1 text-sm text-slate-500">/month</span>
-                    </span>
-                  ) : (
-                    <span className="text-[clamp(1.8rem,3vw,2.6rem)] font-bold text-slate-400">Free</span>
-                  )}
-                </div>
-                <ul className="space-y-3 mb-8 flex-1">
-                  {tier.features.map((f) => (
-                    <li key={f} className="flex items-start gap-3 text-sm text-slate-300/80">
-                      <Check size={16} className="mt-0.5 shrink-0 text-emerald-400/70" />
-                      <span>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  onClick={() => setBetaPopupOpen(true)}
-                  className={`inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold uppercase tracking-[0.12em] transition duration-300 ${
-                    tier.popular
-                      ? "bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.2),0_8px_20px_rgba(61,28,120,0.3)] hover:-translate-y-0.5"
-                      : "border border-white/10 text-slate-300 hover:border-white/20 hover:text-white"
-                  }`}
-                >
-                  {user ? "Get Started" : "Log in"}
-                  <ArrowRight size={16} />
-                </button>
-              </motion.div>
-            );
-          })}
-          </div>
-        </motion.div>
+        </Link>
+      </SectionBand>
+      <SectionBand className="bg-[linear-gradient(180deg,rgba(40,22,10,0.92),rgba(18,12,8,0.98))] border-amber-500/10">
+        <div className="text-center py-12">
+          <h2 className="text-3xl font-bold tracking-[-0.03em] text-amber-100">Not convinced yet?</h2>
+          <p className="mt-3 mx-auto max-w-lg text-base leading-8 text-amber-300/70">
+            Have questions about which plan fits your needs or how APRO Works works?
+          </p>
+          <Link
+            to="/contact"
+            className="mt-6 group inline-flex items-center gap-2 rounded-full border border-amber-400/30 bg-[linear-gradient(180deg,#f59e0b,#d97706)] px-6 py-3 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.25),0_8px_24px_rgba(217,119,6,0.35)] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[inset_1px_1px_0_rgba(255,255,255,0.3),0_12px_32px_rgba(217,119,6,0.5)] animate-pulse hover:animate-none"
+          >
+            <span>Contact us</span>
+            <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+          </Link>
         </div>
       </SectionBand>
       <SectionBand className="bg-[linear-gradient(95deg,rgba(31,21,56,0.84),rgba(8,10,18,1))]">
@@ -662,3 +550,239 @@ const AproWorks: React.FC = () => {
 };
 
 export default AproWorks;
+
+/* ─── AppOrbit — Circuit Board Chipset ─── */
+
+interface AppInfo {
+  id: string;
+  title: string;
+  description: string;
+  logo: string;
+}
+
+function AppOrbit({ apps, aproLogo }: { apps: AppInfo[]; aproLogo: string }) {
+  const [hoveredApp, setHoveredApp] = useState<string | null>(null);
+  const [typedHeader, setTypedHeader] = useState('');
+
+  // Typewriter on hover — only the header line animates
+  useEffect(() => {
+    if (!hoveredApp) { setTypedHeader(''); return; }
+    const app = apps.find(a => a.id === hoveredApp);
+    if (!app) return;
+    const header = `> ${app.title} MODULE v2.4.1`;
+    setTypedHeader('');
+    let i = 0;
+    const type = () => {
+      if (i >= header.length) return;
+      i++;
+      setTypedHeader(header.slice(0, i));
+      const delay = header[i - 1] === '>' || header[i - 1] === ':' || header[i - 1] === ' ' ? 40 : 15 + Math.random() * 20;
+      setTimeout(type, delay);
+    };
+    type();
+    return () => { i = header.length; };
+  }, [hoveredApp, apps]);
+
+  const cpuChip = { x: 50, y: 50, w: 20, h: 18 };
+  const appChips = apps.map((app, i) => {
+    const pos = [
+      { x: 15, y: 18, w: 15, h: 11 },
+      { x: 70, y: 18, w: 15, h: 11 },
+      { x: 15, y: 71, w: 15, h: 11 },
+      { x: 70, y: 71, w: 15, h: 11 },
+    ];
+    return { ...pos[i], app };
+  });
+
+  const decoChips = [
+    { x: 38, y: 9, w: 5, h: 3 }, { x: 57, y: 9, w: 3, h: 5 },
+    { x: 9, y: 48, w: 3, h: 3 }, { x: 88, y: 48, w: 3, h: 3 },
+    { x: 38, y: 85, w: 4, h: 3 }, { x: 58, y: 83, w: 3, h: 4 },
+    { x: 46, y: 29, w: 3, h: 2 }, { x: 51, y: 66, w: 3, h: 2 },
+    { x: 28, y: 38, w: 2, h: 2 }, { x: 72, y: 38, w: 2, h: 2 },
+    { x: 28, y: 62, w: 2, h: 2 }, { x: 72, y: 62, w: 2, h: 2 },
+  ];
+
+  const leds: { x: number; y: number; color: string; delay: number }[] = [
+    { x: 42, y: 7, color: '#22c55e', delay: 0 },
+    { x: 55, y: 7, color: '#ef4444', delay: 0.3 },
+    { x: 7, y: 55, color: '#eab308', delay: 0.6 },
+    { x: 91, y: 55, color: '#22c55e', delay: 0.2 },
+    { x: 42, y: 90, color: '#22c55e', delay: 0.5 },
+    { x: 55, y: 90, color: '#3b82f6', delay: 0.8 },
+    { x: 30, y: 42, color: '#eab308', delay: 0.4 },
+    { x: 70, y: 55, color: '#ef4444', delay: 0.7 },
+  ];
+
+  const viaPositions = [
+    { x: 15, y: 15 }, { x: 85, y: 15 }, { x: 15, y: 85 }, { x: 85, y: 85 },
+    { x: 25, y: 25 }, { x: 75, y: 25 }, { x: 25, y: 75 }, { x: 75, y: 75 },
+    { x: 50, y: 10 }, { x: 50, y: 90 }, { x: 10, y: 50 }, { x: 90, y: 50 },
+  ];
+
+  const traces = [
+    { d: 'M -11,-14 L -11,-49 L -42,-49 L -42,-17', delay: '0s' },
+    { d: 'M 11,-14 L 11,-49 L 42,-49 L 42,-17', delay: '0.3s' },
+    { d: 'M -11,14 L -11,49 L -42,49 L -42,17', delay: '0.6s' },
+    { d: 'M 11,14 L 11,49 L 42,49 L 42,17', delay: '0.9s' },
+    { d: 'M -17,-6 L -28,-6 L -28,-49 L -53,-49', delay: '0.2s' },
+    { d: 'M 17,6 L 28,6 L 28,49 L 53,49', delay: '0.5s' },
+    { d: 'M -6,-17 L -6,-28 L -35,-28 L -35,-56 L -49,-56', delay: '0.4s' },
+    { d: 'M 6,17 L 6,28 L 35,28 L 35,56 L 49,56', delay: '0.7s' },
+  ];
+
+  const decoTracePaths = [
+    'M -112,-112 L -84,-84 L -42,-84 L -28,-70',
+    'M 112,112 L 84,84 L 42,84 L 28,70',
+    'M -112,112 L -84,84 L -42,84 L -28,70',
+    'M 112,-112 L 84,-84 L 42,-84 L 28,-70',
+  ];
+
+  const appFeatures: Record<string, string[]> = {
+    'burn-geometry': ['Grain geometry optimizer', 'Propellant burn simulation', 'Multi-port grain designer', 'CAM export for manufacturing'],
+    'propulsor': ['Thermochemistry solver', 'Injector design wizard', 'Nozzle contour optimizer', 'Real-time chamber analysis'],
+    'hexadof': ['6-DOF flight simulation', 'Live telemetry dashboard', 'Stability margin analysis', 'Sensor fusion engine'],
+    'rsd': ['Parachute sizing calculator', 'Deployment sequence editor', 'Recovery load analysis', 'Drogue & main simulation'],
+  };
+
+  return (
+    <div className="relative mt-12 mb-8 mx-auto w-full max-w-[1260px] overflow-hidden rounded-2xl bg-[linear-gradient(180deg,rgba(14,15,28,0.92),rgba(8,10,18,0.98))]"
+      style={{ aspectRatio: '1260 / 884' }}>
+      {/* PCB grid */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none">
+        <defs>
+          <pattern id="pcbGrid" width="34" height="34" patternUnits="userSpaceOnUse">
+            <path d="M 34 0 L 0 0 0 34" fill="none" stroke="rgba(255,215,0,0.025)" strokeWidth="0.5" />
+          </pattern>
+          <pattern id="pcbGridLarge" width="136" height="136" patternUnits="userSpaceOnUse">
+            <path d="M 136 0 L 0 0 0 136" fill="none" stroke="rgba(255,215,0,0.035)" strokeWidth="0.5" />
+          </pattern>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#pcbGrid)" />
+        <rect width="100%" height="100%" fill="url(#pcbGridLarge)" />
+      </svg>
+
+      {/* Vias */}
+      {viaPositions.map((v, i) => (
+        <div key={`via-${i}`} className="absolute z-10" style={{ left: `${v.x}%`, top: `${v.y}%`, transform: 'translate(-50%,-50%)' }}>
+          <div className="w-2.5 h-2.5 rounded-full border border-amber-500/40 bg-[#0a130a]" />
+          <div className="absolute inset-0.5 rounded-full bg-amber-500/15" />
+        </div>
+      ))}
+
+      {/* Trace lines */}
+      <svg className="absolute inset-0 w-full h-full pointer-events-none z-20" preserveAspectRatio="xMidYMid meet" viewBox="-280 -280 560 560">
+        {traces.map((t, i) => (
+          <g key={i}>
+            <path d={t.d} fill="none" stroke="#b8960f" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.35" />
+            <path d={t.d} fill="none" stroke="#ffd700" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="5 17" className="animate-trace" opacity="0.6" style={{ animationDelay: t.delay }} />
+            <path d={t.d} fill="none" stroke="#fff" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 20" className="animate-trace-fast" opacity="0.4" style={{ animationDelay: t.delay }} />
+          </g>
+        ))}
+        {decoTracePaths.map((d, i) => (
+          <path key={`dt-${i}`} d={d} fill="none" stroke="#b8960f" strokeWidth="2" strokeLinejoin="round" opacity="0.2" />
+        ))}
+      </svg>
+
+      {/* LEDs */}
+      {leds.map((led, i) => (
+        <div key={`led-${i}`} className="absolute z-30" style={{ left: `${led.x}%`, top: `${led.y}%`, transform: 'translate(-50%,-50%)' }}>
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: led.color, boxShadow: `0 0 6px ${led.color}` }}>
+            <div className="w-full h-full rounded-full animate-ping" style={{ backgroundColor: led.color, animationDuration: `${1.5 + led.delay}s`, animationDelay: `${led.delay}s` }} />
+          </div>
+        </div>
+      ))}
+
+      {/* Decorative SMD chips */}
+      {decoChips.map((d, i) => (
+        <div key={`deco-${i}`} className="absolute z-25 rounded-sm border border-amber-500/10 bg-[#1a1a1a]" style={{ left: `${d.x}%`, top: `${d.y}%`, width: `${d.w * 0.7}%`, height: `${d.h * 0.7}%`, transform: 'translate(-50%,-50%)', boxShadow: 'inset 0 0 8px rgba(0,0,0,0.5)' }}>
+          <div className="absolute -top-0.5 left-1/3 w-0.5 h-0.5 rounded-full bg-amber-500/20" />
+          <div className="absolute -bottom-0.5 left-2/3 w-0.5 h-0.5 rounded-full bg-amber-500/20" />
+        </div>
+      ))}
+
+      {/* CPU chip — APRO Works */}
+      <div className="absolute z-40" style={{ left: `${cpuChip.x}%`, top: `${cpuChip.y}%`, width: `${cpuChip.w}%`, height: `${cpuChip.h}%`, transform: 'translate(-50%,-50%)' }}>
+        <div className="absolute inset-x-0 -top-1.5 flex justify-around px-3">
+          {Array.from({ length: 8 }).map((_, i) => (<div key={i} className="w-1 h-1.5 bg-amber-400/40 rounded-t-sm" />))}
+        </div>
+        <div className="absolute inset-x-0 -bottom-1.5 flex justify-around px-3">
+          {Array.from({ length: 8 }).map((_, i) => (<div key={i} className="w-1 h-1.5 bg-amber-400/40 rounded-b-sm" />))}
+        </div>
+        <div className="absolute inset-y-0 -left-1 flex flex-col justify-around py-2">
+          {Array.from({ length: 6 }).map((_, i) => (<div key={i} className="w-1.5 h-1 bg-amber-400/40 rounded-l-sm" />))}
+        </div>
+        <div className="absolute inset-y-0 -right-1 flex flex-col justify-around py-2">
+          {Array.from({ length: 6 }).map((_, i) => (<div key={i} className="w-1.5 h-1 bg-amber-400/40 rounded-r-sm" />))}
+        </div>
+            <div className="w-full h-full rounded-lg border-2 border-amber-500/25 bg-gradient-to-br from-[#222] to-[#111] flex items-center justify-center shadow-[0_0_20px_rgba(255,215,0,0.08)]">
+          <div className="flex flex-col items-center gap-1.5">
+            <img src={aproLogo} alt="APRO Works" className="h-10 w-10 md:h-12 md:w-12 object-contain" />
+            <span className="text-[9px] md:text-[10px] uppercase tracking-[0.2em] text-amber-400/70 font-mono font-bold">APRO Works</span>
+          </div>
+        </div>
+        <div className="absolute -top-5 left-0 text-[8px] font-mono text-amber-500/30 tracking-wider">U1</div>
+        <div className="absolute -bottom-4 right-0 text-[8px] font-mono text-amber-500/20">MAIN_PROC</div>
+      </div>
+
+      {/* App chips */}
+      {appChips.map((chip, i) => {
+        const isHovered = hoveredApp === chip.app.id;
+        return (
+          <div key={chip.app.id} className="absolute z-40 cursor-pointer" style={{ left: `${chip.x}%`, top: `${chip.y}%`, width: `${chip.w}%`, height: `${chip.h}%`, transform: 'translate(-50%,-50%)' }} onMouseEnter={() => setHoveredApp(chip.app.id)} onMouseLeave={() => setHoveredApp(null)}>
+            <div className="absolute inset-x-0 -top-1 flex justify-around px-2">
+              {Array.from({ length: 6 }).map((_, j) => (<div key={j} className="w-0.5 h-1 bg-amber-400/30 rounded-t-sm" />))}
+            </div>
+            <div className="absolute inset-x-0 -bottom-1 flex justify-around px-2">
+              {Array.from({ length: 6 }).map((_, j) => (<div key={j} className="w-0.5 h-1 bg-amber-400/30 rounded-b-sm" />))}
+            </div>
+            <div className={`w-full h-full rounded-md border transition-all duration-300 flex items-center justify-center ${isHovered ? 'border-cyan-400/50 bg-[rgba(6,18,30,0.92)] shadow-[0_0_25px_rgba(34,211,238,0.15)]' : 'border-amber-500/15 bg-[#1a1a1a] hover:border-amber-400/30'}`}>
+              <img src={chip.app.logo} alt={chip.app.title} className="h-8 w-8 md:h-10 md:w-10 object-contain" />
+            </div>
+            <div className="absolute -top-3.5 left-0 text-[7px] font-mono text-amber-500/25 tracking-wider">U{2 + i}</div>
+          </div>
+        );
+      })}
+
+      {/* Console terminal on hover */}
+      {hoveredApp && (() => {
+        const chip = appChips.find(c => c.app.id === hoveredApp);
+        if (!chip) return null;
+        const features = appFeatures[hoveredApp] || [];
+        const isTopRow = chip.y < 40;
+        return (
+          <div className="absolute z-50 w-72 md:w-80" style={{ left: `${chip.x}%`, top: isTopRow ? `${chip.y + chip.h / 2 + 5}%` : `${chip.y - chip.h / 2 - 5}%`, transform: `translate(-50%, ${isTopRow ? '0' : '-100%'})` }}>
+            <div className="rounded-lg border border-amber-500/25 bg-[rgba(10,15,10,0.97)] shadow-[0_0_30px_rgba(0,0,0,0.6)] overflow-hidden backdrop-blur-sm">
+              <div className="flex items-center gap-2 px-3 py-2 bg-amber-500/5 border-b border-amber-500/15">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500/50" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/50" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-green-500/50" />
+                </div>
+                <span className="text-[10px] md:text-xs font-mono text-amber-400/40 ml-2">console -- {hoveredApp.toUpperCase()}</span>
+              </div>
+              <div className="px-3 py-3 font-mono text-xs md:text-sm leading-relaxed">
+                <div className="text-amber-300/90 min-h-[16px]">
+                  {typedHeader}{typedHeader.length > 0 && <span className="text-amber-400 animate-pulse">_</span>}
+                  {typedHeader.length === 0 && <span className="text-amber-400 animate-pulse">_</span>}
+                </div>
+                <div className="mt-2 space-y-1.5 border-t border-amber-500/10 pt-2.5">
+                  {features.map((f, j) => (
+                    <div key={j} className="flex items-center gap-2 text-amber-400/60">
+                      <span className="text-[9px]">▪</span>
+                      <span>{f}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-[10px] text-amber-500/30 flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500/50 animate-pulse" style={{ animationDuration: '2s' }} />
+                  LINK_ESTABLISHED
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+    </div>
+  );
+}

@@ -28,7 +28,8 @@ interface TrackUser {
 }
 
 const UserFeed: React.FC = () => {
-  const { id: profileId } = useParams<{ id: string }>();
+  const { id: param } = useParams<{ id: string }>();
+  const [profileId, setProfileId] = useState<string | null>(null);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [userVotes, setUserVotes] = useState<Record<string, number | null>>({});
   const [userId, setUserId] = useState<string | undefined>();
@@ -48,17 +49,35 @@ const UserFeed: React.FC = () => {
   const [editModalKey, setEditModalKey] = useState(0);
 
   useEffect(() => {
-    if (!profileId) return;
-    const init = async () => {
+    if (!param) return;
+    const resolveProfile = async () => {
       const session = await supabase.auth.getSession();
       const uid = session.data.session?.user?.id;
+
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      let resolvedId: string | null = null;
+
+      if (uuidRegex.test(param)) {
+        resolvedId = param;
+      } else {
+        const { data } = await supabase
+          .from('community_profiles')
+          .select('id')
+          .eq('display_name', param)
+          .maybeSingle();
+        resolvedId = data?.id ?? null;
+      }
+
+      if (!resolvedId) { setLoading(false); return; }
+      setProfileId(resolvedId);
       setUserId(uid);
+      setProfileName(param);
 
       const [userPosts, fData, fwData, profile] = await Promise.all([
-        fetchUserPosts(profileId, uid),
-        fetchFollowers(profileId),
-        fetchFollowing(profileId),
-        fetchProfile(profileId),
+        fetchUserPosts(resolvedId, uid),
+        fetchFollowers(resolvedId),
+        fetchFollowing(resolvedId),
+        fetchProfile(resolvedId),
       ]);
 
       setPosts(userPosts);
@@ -66,15 +85,15 @@ const UserFeed: React.FC = () => {
       setFollowingList((fwData as any[]).filter((f: any) => f.following_id).map((f: any) => ({ id: f.following_id, created_at: f.created_at })));
       setFollowerCount(fData.length);
       setFollowingCount(fwData.length);
-      setProfileName(profile?.display_name || uid === profileId ? (await getDisplayName(profileId)) : profileId.slice(0, 8));
+      setProfileName(profile?.display_name || resolvedId.slice(0, 8));
       setProfileBio(profile?.bio || '');
       setProfileAvatar(profile?.avatar_url || '');
       setProfileFlag(profile?.flag || '');
 
       if (uid) {
-        setFollowing(await isFollowing(uid, profileId));
-        if (uid !== profileId) {
-          setProfileFollowsMe(await isFollowing(profileId, uid));
+        setFollowing(await isFollowing(uid, resolvedId));
+        if (uid !== resolvedId) {
+          setProfileFollowsMe(await isFollowing(resolvedId, uid));
         }
         const voteMap: Record<string, number | null> = {};
         for (const p of userPosts) {
@@ -85,8 +104,8 @@ const UserFeed: React.FC = () => {
 
       setLoading(false);
     };
-    init();
-  }, [profileId]);
+    resolveProfile();
+  }, [param]);
 
   const handleVote = async (postId: string, vote: 1 | -1) => {
     if (!userId) return;

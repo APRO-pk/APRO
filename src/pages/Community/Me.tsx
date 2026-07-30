@@ -6,10 +6,16 @@ const Me = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       const uid = data.session?.user?.id;
-      if (uid) navigate(`/community/user/${uid}`, { replace: true });
-      else navigate('/login', { replace: true });
+      if (uid) {
+        const { data: profile } = await supabase
+          .from('community_profiles')
+          .select('display_name')
+          .eq('id', uid)
+          .maybeSingle();
+        navigate(`/community/user/${profile?.display_name || uid}`, { replace: true });
+      } else navigate('/login', { replace: true });
     });
   }, [navigate]);
 

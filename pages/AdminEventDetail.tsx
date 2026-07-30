@@ -4,7 +4,7 @@ import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
 import type { AdminEvent, FormField } from "../src/lib/forms-types";
 import { FIELD_TYPES, FIELD_TYPE_LABELS } from "../src/lib/forms-types";
-import { ArrowUp, ArrowDown, Trash2, Plus, Save, Check, X, Copy } from "lucide-react";
+import { ArrowUp, ArrowDown, Trash2, Plus, Save, Check, X, Copy, ExternalLink } from "lucide-react";
 
 type TabId = "details" | "fields" | "responses";
 
@@ -235,11 +235,6 @@ const AdminEventDetail: React.FC = () => {
     { id: "responses", label: "Responses" },
   ];
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/admin/login");
-  };
-
   const set = (field: string, val: any) => setEvent((prev) => prev ? { ...prev, [field]: val } : prev);
 
   return (
@@ -250,7 +245,7 @@ const AdminEventDetail: React.FC = () => {
       actions={
         <>
           <GhostButton to="/admin/events">All events</GhostButton>
-          <button onClick={handleLogout} className="inline-flex items-center rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white">Logout</button>
+          <a href={`/#/events/${event.slug}/register`} target="_blank" rel="noreferrer" className="inline-flex items-center rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white">View Form</a>
         </>
       }
     >
@@ -596,9 +591,15 @@ const FieldEditor: React.FC<{
           )}
 
           {field.field_type === "rich_html" && (
-            <div>
+            <div className="space-y-3">
               <textarea value={field.html_content || ""} onChange={(e) => set("html_content", e.target.value)}
                 className="w-full rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs font-mono text-white outline-none focus:border-violet-300/28 min-h-[120px] resize-y" placeholder="<div>Your custom HTML here</div>" />
+              {field.html_content && (
+                <div>
+                  <p className="mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-500">Preview</p>
+                  <RichHtmlPreview html={field.html_content} />
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -621,6 +622,46 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
   const [responses, setResponses] = useState<FlatResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<FlatResponse | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [profileIds, setProfileIds] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadProfiles = async () => {
+      const emails = [...new Set(responses.map((r) => r.email).filter(Boolean))];
+      if (emails.length === 0) return;
+      const uniqueEmails = [...new Set(emails)];
+      const { data } = await supabase.rpc("get_user_ids_by_emails", { emails: uniqueEmails });
+      if (data) {
+        const map: Record<string, string> = {};
+        for (const row of data) { map[row.email] = row.id; }
+        // Look up which of those have community profiles
+        const ids = Object.values(map);
+        if (ids.length > 0) {
+          const { data: profiles } = await supabase.from("community_profiles").select("id").in("id", ids);
+          if (profiles) {
+            const profileIdSet = new Set(profiles.map((p) => p.id));
+            for (const email of Object.keys(map)) {
+              if (!profileIdSet.has(map[email])) delete map[email];
+            }
+          }
+        }
+        setProfileIds(map);
+      }
+    };
+    if (responses.length > 0) loadProfiles();
+  }, [responses]);
+
+  const deleteResponse = async (responseId: string) => {
+    setDeleting(responseId);
+    await supabase.from("form_field_responses").delete().eq("response_id", responseId);
+    await supabase.from("form_responses").delete().eq("id", responseId);
+    setResponses((prev) => prev.filter((r) => r.responseId !== responseId));
+    setSelected((prev) => prev?.responseId === responseId ? null : prev);
+    setDeleting(null);
+    setConfirmDelete(null);
+  };
 
   useEffect(() => {
     const load = async () => {
@@ -668,12 +709,28 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
         <div className="grid gap-4 lg:grid-cols-[1fr_1fr]">
           <div className="space-y-2">
             {responses.map((r) => (
-              <button key={r.responseId} onClick={() => setSelected(r)}
-                className={`w-full rounded-2xl border p-4 text-left transition ${selected?.responseId === r.responseId ? "border-violet-500/30 bg-violet-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
-                <p className="text-sm font-bold text-white">{r.name || "Anonymous"}</p>
-                <p className="text-xs text-slate-400">{r.email || "No email"}</p>
-                <p className="mt-1 text-[11px] text-slate-500">{new Date(r.submittedAt).toLocaleString()}</p>
-              </button>
+              <div key={r.responseId} className="group relative">
+                <button onClick={() => setSelected(r)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selected?.responseId === r.responseId ? "border-violet-500/30 bg-violet-500/10" : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"}`}>
+                  <p className="text-sm font-bold text-white">{r.name || "Anonymous"}</p>
+                  <p className="text-xs text-slate-400">{r.email || "No email"}</p>
+                  <p className="mt-1 text-[11px] text-slate-500">{new Date(r.submittedAt).toLocaleString()}</p>
+                </button>
+                {confirmDelete === r.responseId ? (
+                  <div className="mt-1 flex items-center gap-2 px-1">
+                    <span className="text-xs text-red-400">Delete?</span>
+                    <button onClick={() => deleteResponse(r.responseId)} disabled={deleting === r.responseId}
+                      className="rounded-lg bg-red-500/20 px-2 py-1 text-xs font-bold text-red-300 hover:bg-red-500/30">Yes</button>
+                    <button onClick={() => setConfirmDelete(null)}
+                      className="rounded-lg bg-white/10 px-2 py-1 text-xs text-slate-400 hover:bg-white/20">No</button>
+                  </div>
+                ) : (
+                  <button onClick={(e) => { e.stopPropagation(); setConfirmDelete(r.responseId); }}
+                    className="absolute right-2 top-2 rounded-lg p-1.5 text-red-400 opacity-0 group-hover:opacity-100 hover:bg-red-400/10 transition-opacity">
+                    <Trash2 size={14} />
+                  </button>
+                )}
+              </div>
             ))}
           </div>
           {selected && (
@@ -686,7 +743,14 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
                 </div>
                 <div className="border-b border-white/10 pb-2">
                   <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Email</p>
-                  <p className="text-sm text-slate-100">{selected.email || "—"}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm text-slate-100">{selected.email || "—"}</p>
+                    {profileIds[selected.email] && (
+                      <a href={`/#/community/user/${profileIds[selected.email]}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-2 py-1 text-[11px] font-semibold text-cyan-300 hover:bg-cyan-500/20 transition" title="Visit community profile">
+                        <ExternalLink size={12} /> Profile
+                      </a>
+                    )}
+                  </div>
                 </div>
                 {fields.map((f) => {
                   const val = selected.answers[f.id];
@@ -696,7 +760,7 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
                     <div key={f.id} className="border-b border-white/10 pb-2">
                       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{f.label}</p>
                       {isImage ? (
-                        <a href={val} target="_blank" rel="noreferrer"><img src={val} alt="" className="mt-1 max-h-40 rounded-lg object-contain" /></a>
+                        <button onClick={() => setLightboxUrl(val)} className="block"><img src={val} alt="" className="mt-1 max-h-40 rounded-lg object-contain cursor-pointer transition hover:opacity-80" /></button>
                       ) : isUrl ? (
                         <a href={val} target="_blank" rel="noreferrer" className="text-sm text-violet-300 hover:underline break-words">View file ↗</a>
                       ) : (
@@ -710,8 +774,70 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
           )}
         </div>
       )}
+      {lightboxUrl && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xl p-4" onClick={() => setLightboxUrl(null)}>
+          <button onClick={() => setLightboxUrl(null)} className="absolute top-6 right-6 text-white/70 hover:text-white z-10"><X size={28} /></button>
+          <img src={lightboxUrl} alt="" className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
     </div>
   );
+};
+
+/* ========== Rich HTML Preview with script execution ========== */
+
+const RichHtmlPreview: React.FC<{ html: string }> = ({ html }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const root = ref.current;
+    const scripts = root.querySelectorAll("script");
+    scripts.forEach((oldScript) => {
+      const newScript = document.createElement("script");
+      Array.from(oldScript.attributes).forEach((attr) => {
+        newScript.setAttribute(attr.name, attr.value);
+      });
+      newScript.textContent = oldScript.textContent;
+      oldScript.replaceWith(newScript);
+    });
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest("[data-clipboard], [data-copy-target]") as HTMLElement | null;
+      if (!btn) return;
+      let text: string | null = null;
+      if (btn.dataset.clipboard) {
+        text = btn.dataset.clipboard;
+      } else if (btn.dataset.copyTarget) {
+        const src = root.querySelector(btn.dataset.copyTarget);
+        text = src?.textContent?.trim() ?? null;
+      }
+      if (!text) return;
+      e.preventDefault();
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = text!;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+      });
+      const toast = btn.querySelector("[data-copy-toast]") || btn.parentElement?.querySelector("[data-copy-toast]");
+      if (toast) {
+        toast.classList.add("vzp-show");
+        setTimeout(() => toast.classList.remove("vzp-show"), 1400);
+      }
+      btn.classList.add("vzp-copied");
+      setTimeout(() => btn.classList.remove("vzp-copied"), 1400);
+    };
+    root.addEventListener("click", handler);
+    return () => root.removeEventListener("click", handler);
+  }, [html]);
+
+  return <div ref={ref} dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
 /* ========== Shared ========== */

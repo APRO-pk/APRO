@@ -9,12 +9,13 @@ import Resources from './pages/Resources';
 import Contact from './pages/Contact';
 import Membership from './pages/Membership';
 import Legal from './pages/Legal';
-import StudentApplication from './pages/StudentApplication';
+import MemberApplication from './pages/MemberApplication';
 import ChapterApplication from './pages/ChapterApplication';
 import JoinAproApplication from './pages/JoinApplication';
 import AdminLogin from './pages/adminLogin';
 import ProtectedAdminRoute from './components/ProtectedAdminRoute';
 import AdminDashboard from './pages/AdminDashboard';
+import Dashboard from './pages/Dashboard';
 import StudentApplicationsPage from './pages/StudentApplicationsPage';
 import ChapterApplicationsPage from './pages/ChapterApplicationsPage';
 import CareerApplicationsPage from './pages/CareerApplicationsPage';
@@ -24,6 +25,8 @@ import ResetPassword from './pages/ResetPassword';
 import FeedbackHub from './pages/FeedbackHub';
 import AdminFeedback from './pages/AdminFeedback';
 import AproWorks from './pages/AproWorks';
+import Pricing from './pages/Pricing';
+import Certifications from './pages/Certifications';
 import EventRegister from './pages/EventRegister';
 import EventDetail from './pages/EventDetail';
 import AdminEventsList from './pages/AdminEventsList';
@@ -47,18 +50,21 @@ function App() {
           <Route path="/" element={<Layout />}>
             <Route index element={<Home />} />
             <Route path="apro-works" element={<AproWorks />} />
+            <Route path="pricing" element={<Pricing />} />
+            <Route path="certifications" element={<Certifications />} />
             <Route path="about" element={<About />} />
             <Route path="events" element={<Events />} />
             <Route path="resources" element={<Resources />} />
             <Route path="contact" element={<Contact />} />
             <Route path="membership" element={<Membership />} />
             <Route path="legal" element={<Legal />} />
-            <Route path="student" element={<StudentApplication />} />
+            <Route path="join" element={<MemberApplication />} />
             <Route path="chapter" element={<ChapterApplication />} />
             <Route path="join" element={<JoinAproApplication />} />
             <Route path="admin" element={<AdminLogin />} />
             <Route path="login" element={<UserLogin />} />
             <Route path="reset-password" element={<ResetPassword />} />
+            <Route path="dashboard" element={<Dashboard />} />
             <Route path="feedback" element={<FeedbackHub />} />
             <Route path="events/:slug/register" element={<EventRegister />} />
             <Route path="events/:slug" element={<EventDetail />} />

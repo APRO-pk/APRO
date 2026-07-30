@@ -158,6 +158,12 @@ const UserLogin: React.FC = () => {
       eyebrow="Member Access"
       title="APRO member login."
       description="Login is available only after your application has been approved. Pending accounts remain locked until review is complete."
+      actions={
+        <Link to="/membership"
+          className="inline-flex items-center rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-white hover:opacity-90 transition-opacity">
+          More About Membership
+        </Link>
+      }
     >
       <form className="space-y-6" onSubmit={handleLogin}>
         <div>
@@ -185,7 +191,7 @@ const UserLogin: React.FC = () => {
         </button>
 
         <div className="flex items-center justify-between border-t border-white/10 pt-4">
-          <GhostButton to="/student">Apply first</GhostButton>
+          <GhostButton to="/join">Apply first</GhostButton>
           <button
             type="button"
             onClick={() => setForgotMode(true)}

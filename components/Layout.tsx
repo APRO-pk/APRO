@@ -4,12 +4,18 @@ import {
   Instagram,
   Menu,
   X,
+  User,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
   Phone,
   Bell,
   Rocket,
+  MoreHorizontal,
+  ChevronDown,
+  ExternalLink,
+  FileText,
+  Award,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
@@ -20,7 +26,6 @@ import { unreadSignalCount } from "../src/lib/community-api";
 import { SignalBadge } from "../src/components/Community/SignalBadge";
 import { SignupPrompt } from "../src/components/Community/SignupPrompt";
 import logo from "../assets/logo.png";
-import launchpadIcon from "../assets/launchpad.png";
 
 const shellPanelStyle: React.CSSProperties = {
   background:
@@ -51,51 +56,12 @@ function renderNavVisual(item: NavItem, className: string) {
   return <Icon className={className} />;
 }
 
-function LaunchpadLink({
-  mobile = false,
-  onNavigate,
-}: {
-  mobile?: boolean;
-  onNavigate?: () => void;
-}) {
-  if (mobile) {
-    return (
-      <a
-        href="https://launchpad.apro.pk"
-        target="_blank"
-        rel="noreferrer"
-        onClick={onNavigate}
-        className="flex items-center gap-3 rounded-xl border border-[#f0c27b]/24 bg-[linear-gradient(180deg,rgba(241,169,78,0.18),rgba(140,76,22,0.12))] px-4 py-3 text-sm font-semibold text-[#ffe3bb] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(68,28,4,0.34),0_16px_30px_rgba(45,21,4,0.24)] transition duration-300 hover:border-[#f0c27b]/36 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.24),rgba(140,76,22,0.16))] hover:text-white"
-      >
-        <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[8px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.25)]" />
-        Launchpad
-      </a>
-    );
-  }
-
-  return (
-    <a
-      href="https://launchpad.apro.pk"
-      target="_blank"
-      rel="noreferrer"
-      className="group relative ml-2 flex items-center gap-2 rounded-full border border-[#f0c27b]/20 bg-[linear-gradient(180deg,rgba(241,169,78,0.14),rgba(124,69,21,0.1))] px-3 py-2 text-[#ffdca9] shadow-[inset_1px_1px_0_rgba(255,255,255,0.08),inset_-1px_-1px_0_rgba(55,26,5,0.34),0_16px_28px_rgba(38,19,4,0.2)] transition duration-300 hover:-translate-y-0.5 hover:border-[#f0c27b]/34 hover:bg-[linear-gradient(180deg,rgba(241,169,78,0.2),rgba(124,69,21,0.14))] hover:text-white"
-    >
-      <img src={launchpadIcon} alt="" className="h-6 w-6 rounded-[10px] object-cover shadow-[0_4px_12px_rgba(0,0,0,0.28)]" />
-      <span className="text-[10px] font-semibold uppercase tracking-[0.24em]">Launchpad</span>
-      <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
-        <div className="whitespace-nowrap rounded-xl border border-[#f0c27b]/16 bg-[#18110a]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#ffe3bb] shadow-xl backdrop-blur-md">
-          Open Launchpad
-        </div>
-      </div>
-    </a>
-  );
-}
-
 export const Layout: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [unreadSignals, setUnreadSignals] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -105,9 +71,17 @@ export const Layout: React.FC = () => {
   const isCommunity = location.pathname.startsWith('/community');
 
   useEffect(() => {
+    const checkAdmin = async (userId: string) => {
+      const { data: row } = await supabase.from("admins").select("id").eq("auth_id", userId).maybeSingle();
+      setIsAdmin(!!row);
+    };
+
     const getSession = async () => {
       const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user ?? null);
+      const user = data.session?.user ?? null;
+      setUser(user);
+      if (user) checkAdmin(user.id);
+      else setIsAdmin(false);
     };
 
     getSession();
@@ -115,6 +89,8 @@ export const Layout: React.FC = () => {
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, session) => {
         setUser(session?.user ?? null);
+        if (session?.user) checkAdmin(session.user.id);
+        else setIsAdmin(false);
         if (event === "PASSWORD_RECOVERY") {
           navigate("/reset-password");
         }
@@ -204,7 +180,7 @@ export const Layout: React.FC = () => {
         />
       </div>
 
-      <header className="sticky top-0 z-50 px-3 pb-3 pt-4 md:px-5">
+      <header className={`px-3 pb-3 pt-4 md:px-5 z-50 ${location.pathname.startsWith('/admin') ? 'relative' : 'sticky top-0'}`}>
         <div
           className="mx-auto w-full max-w-[1840px] rounded-[30px] border border-white/10 px-4 py-3 md:px-5"
           style={shellPanelStyle}
@@ -242,30 +218,76 @@ export const Layout: React.FC = () => {
                 const iconClassName = `text-3xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
 
                 return (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    className={navItemClassName}
-                  >
-                    {renderNavVisual(item, iconClassName)}
-                    {isActive && (
-                      <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
-                        item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
-                      }`} />
-                    )}
-                    <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
-                      <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
-                        {item.label}
+                  <React.Fragment key={item.path}>
+                    {item.dividerBefore && <span className="w-px h-6 bg-white/10 mx-1" />}
+                    <NavLink
+                      to={item.path}
+                      className={navItemClassName}
+                    >
+                      {renderNavVisual(item, iconClassName)}
+                      {isActive && (
+                        <span className={`absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full ${
+                          item.path === "/apro-works" ? "nav-rainbow-dot" : "bg-violet-400"
+                        }`} />
+                      )}
+                      <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+                        <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md" style={{ animation: "tooltipIn 0.15s ease-out" }}>
+                          {item.label}
+                        </div>
                       </div>
-                    </div>
-                  </NavLink>
+                    </NavLink>
+                  </React.Fragment>
                 );
               })}
-              <LaunchpadLink />
+              <div className="group relative flex items-center justify-center p-1.5 text-slate-400 hover:text-slate-200 transition-all duration-300 cursor-pointer">
+                <MoreHorizontal size={24} />
+                {isNavItemActive({ label: "More", path: "/legal" }, location.pathname) && (
+                  <span className="absolute -bottom-0.5 left-1/2 h-0.5 w-5 -translate-x-1/2 rounded-full bg-violet-400" />
+                )}
+                <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-all duration-200 -translate-y-1 group-hover:translate-y-0 group-hover:opacity-100">
+                  <div className="whitespace-nowrap rounded-xl border border-white/10 bg-[#0f1120]/95 px-3.5 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-white shadow-xl backdrop-blur-md">
+                    More
+                  </div>
+                </div>
+                <div className="pointer-events-none absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 translate-y-1 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-200 group-hover:pointer-events-auto">
+                  <div className="min-w-[150px] overflow-hidden rounded-xl border border-white/10 bg-[#0f1120]/95 shadow-xl backdrop-blur-md">
+                    <NavLink
+                      to="/legal"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                    >
+                      <FileText size={14} />
+                      Legal
+                    </NavLink>
+                    <NavLink
+                      to="/contact"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                    >
+                      <Phone size={14} />
+                      Contact
+                    </NavLink>
+                    <NavLink
+                      to="/certifications"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                    >
+                      <Award size={14} />
+                      Certifications
+                    </NavLink>
+                    <a
+                      href="https://launchpad.apro.pk"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                    >
+                      <ExternalLink size={14} />
+                      Launchpad
+                    </a>
+                  </div>
+                </div>
+              </div>
             </nav>
 
             <div className="hidden items-center gap-3 lg:flex">
-              <CurrencySelector />
+              {location.pathname === '/apro-works' && <CurrencySelector />}
               {isCommunity && (
                 <div className="relative" ref={notifRef}>
                   <button
@@ -316,13 +338,23 @@ export const Layout: React.FC = () => {
                         <p className="text-sm font-semibold text-white truncate">{user.email}</p>
                       </div>
                       <Link
-                        to="/admin/dashboard"
+                        to="/dashboard"
                         onClick={() => setUserMenuOpen(false)}
                         className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
                       >
-                        <LayoutDashboard size={16} className="text-violet-300 transition-transform duration-200 group-hover:scale-110" />
+                        <User size={16} className="text-emerald-300 transition-transform duration-200 group-hover:scale-110" />
                         <span>Dashboard</span>
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
+                        >
+                          <LayoutDashboard size={16} className="text-violet-300 transition-transform duration-200 group-hover:scale-110" />
+                          <span>Admin Dashboard</span>
+                        </Link>
+                      )}
                       <Link
                         to="/community/signals"
                         onClick={() => setUserMenuOpen(false)}
@@ -343,14 +375,6 @@ export const Layout: React.FC = () => {
                       >
                         <MessageSquareText size={16} className="text-cyan-300 transition-transform duration-200 group-hover:scale-110" />
                         <span>Feedback</span>
-                      </Link>
-                      <Link
-                        to="/contact"
-                        onClick={() => setUserMenuOpen(false)}
-                        className="group flex items-center gap-3 px-4 py-3 text-sm text-slate-200 transition-all duration-200 hover:bg-white/[0.06] hover:pl-5"
-                      >
-                        <Phone size={16} className="text-amber-300 transition-transform duration-200 group-hover:scale-110" />
-                        <span>Contact</span>
                       </Link>
                       <div className="border-t border-white/10">
                         <button
@@ -396,19 +420,63 @@ export const Layout: React.FC = () => {
                   const iconClassName = `text-xl ${isActive && item.path === "/apro-works" ? "nav-rainbow-glow" : ""}`;
 
                   return (
-                    <NavLink
-                      key={item.path}
-                      to={item.path}
-                      onClick={() => setIsMenuOpen(false)}
-                      className={mobileItemClassName}
-                      style={navPillStyle}
-                    >
-                      {renderNavVisual(item, iconClassName)}
-                      {item.label}
-                    </NavLink>
+                    <React.Fragment key={item.path}>
+                      {item.dividerBefore && <div className="border-t border-white/10 my-2" />}
+                      <NavLink
+                        to={item.path}
+                        onClick={() => setIsMenuOpen(false)}
+                        className={mobileItemClassName}
+                        style={navPillStyle}
+                      >
+                        {renderNavVisual(item, iconClassName)}
+                        {item.label}
+                      </NavLink>
+                    </React.Fragment>
                   );
                 })}
-                <LaunchpadLink mobile onNavigate={() => setIsMenuOpen(false)} />
+                <details className="group">
+                  <summary className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white [&::-webkit-details-marker]:hidden">
+                    <MoreHorizontal size={20} className="shrink-0" />
+                    <span>More</span>
+                    <ChevronDown size={14} className="ml-auto transition-transform group-open:rotate-180" />
+                  </summary>
+                  <div className="mt-2 space-y-2 pl-4">
+                    <NavLink
+                      to="/legal"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <FileText size={18} className="shrink-0" />
+                      Legal
+                    </NavLink>
+                    <NavLink
+                      to="/contact"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <Phone size={18} className="shrink-0" />
+                      Contact
+                    </NavLink>
+                    <NavLink
+                      to="/certifications"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <Award size={18} className="shrink-0" />
+                      Certifications
+                    </NavLink>
+                    <a
+                      href="https://launchpad.apro.pk"
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <ExternalLink size={18} className="shrink-0" />
+                      Launchpad
+                    </a>
+                  </div>
+                </details>
               </div>
 
               <div className="mt-4 border-t border-white/10 pt-4">
@@ -423,14 +491,25 @@ export const Layout: React.FC = () => {
                       </div>
                     </div>
                       <Link
-                        to="/admin/dashboard"
+                        to="/dashboard"
                         onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
                         className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
                         style={navPillStyle}
                       >
-                        <LayoutDashboard size={16} className="text-violet-300" />
+                        <User size={16} className="text-emerald-300" />
                         Dashboard
                       </Link>
+                      {isAdmin && (
+                        <Link
+                          to="/admin/dashboard"
+                          onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
+                          className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
+                          style={navPillStyle}
+                        >
+                          <LayoutDashboard size={16} className="text-violet-300" />
+                          Admin Dashboard
+                        </Link>
+                      )}
                       <Link
                         to="/community/signals"
                         onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
@@ -453,15 +532,6 @@ export const Layout: React.FC = () => {
                     >
                       <MessageSquareText size={16} className="text-cyan-300" />
                       Feedback
-                    </Link>
-                    <Link
-                      to="/contact"
-                      onClick={() => { setUserMenuOpen(false); setIsMenuOpen(false); }}
-                      className="group flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-slate-200 transition-all duration-200 hover:bg-white/[0.08]"
-                      style={navPillStyle}
-                    >
-                      <Phone size={16} className="text-amber-300" />
-                      Contact
                     </Link>
                     <button
                       onClick={handleLogout}
@@ -491,7 +561,7 @@ export const Layout: React.FC = () => {
         <Outlet />
       </main>
 
-      {!location.pathname.startsWith('/community') && (
+      {!location.pathname.startsWith('/community') && !location.pathname.startsWith('/admin') && (
       <footer className="relative z-10 px-3 pb-6 pt-2 md:px-5 md:pb-8">
         <div
           className="mx-auto w-full max-w-[1840px] rounded-[30px] border border-white/10 px-6 py-6 md:px-8"

@@ -138,6 +138,7 @@ export const AuthShell: React.FC<HeaderProps> = ({
   eyebrow = "APRO Access",
   title,
   description,
+  actions,
   children,
 }) => (
   <PageScaffold>
@@ -153,6 +154,7 @@ export const AuthShell: React.FC<HeaderProps> = ({
               {description}
             </p>
           ) : null}
+          {actions ? <div className="mt-8">{actions}</div> : null}
         </SurfacePanel>
         <SurfacePanel className="p-8 md:p-10">{children}</SurfacePanel>
       </div>

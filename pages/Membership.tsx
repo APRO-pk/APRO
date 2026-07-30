@@ -19,7 +19,7 @@ const Membership: React.FC = () => {
             </div>
             <h3 className="mt-8 text-3xl font-bold tracking-[-0.05em] text-white">Community access</h3>
             <p className="mt-4 text-base leading-8 text-slate-300/76">
-              Join a network of students, builders, and mentors working around
+              Join a network of members, builders, and mentors working around
               propulsion, systems, and launch culture.
             </p>
           </SurfacePanel>
@@ -52,11 +52,11 @@ const Membership: React.FC = () => {
         <div className="grid gap-6 lg:grid-cols-2">
           <SurfacePanel>
             <div className="text-[11px] uppercase tracking-[0.34em] text-slate-400">Individual Track</div>
-            <h3 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-white">Student / Individual</h3>
+            <h3 className="mt-4 text-4xl font-bold tracking-[-0.05em] text-white">Member / Individual</h3>
             <p className="mt-4 text-base leading-8 text-slate-300/76">
-              Ideal for students and individuals entering rocketry through structured training and participation.
+              Ideal for individuals entering rocketry through structured training and participation.
             </p>
-            <div className="mt-8"><GhostButton to="/student">Apply now</GhostButton></div>
+            <div className="mt-8"><GhostButton to="/join">Apply now</GhostButton></div>
           </SurfacePanel>
 
           <SurfacePanel className="bg-[linear-gradient(95deg,rgba(7,41,47,0.9),rgba(8,10,18,1))]">

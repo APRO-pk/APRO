@@ -1,7 +1,9 @@
 import { useEffect, useState, useRef } from 'react';
 import { ArrowLeft, Plus, Check, Circle, Loader2, Globe, Lock, Eye, Rocket, Send, ImagePlus, X, ChevronDown, ChevronRight, Settings as SettingsIcon, Users, Logs, Flame, Zap, MessageCircle, Repeat2, Trash2, Radio } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
-import { fetchPhases, createPhase, updatePhase, fetchMilestones, createMilestone, fetchChecklistItems, createChecklistItem, toggleChecklistItem, deleteChecklistItem, fetchProjectFeed, createProjectPost, getMilestoneProgress, getPhaseProgress, updateProject, fetchProjectMembers, removeProjectMember, deleteProjectPost, isTrackingProject, toggleProjectFollow, inviteToProject, fetchProjectInvites, cancelInvite } from '../../lib/missions-api';
+import { fetchPhases, createPhase, updatePhase, fetchMilestones, createMilestone, fetchChecklistItems, createChecklistItem, toggleChecklistItem, deleteChecklistItem, fetchProjectFeed, createProjectPost, getMilestoneProgress, getPhaseProgress, updateProject, deleteProject, fetchProjectMembers, removeProjectMember, deleteProjectPost, isTrackingProject, toggleProjectFollow, inviteToProject, fetchProjectInvites, cancelInvite } from '../../lib/missions-api';
+import { useTokens } from '../../lib/token-utils';
+import { InsufficientTokensModal } from './TokenModals';
 import type { Project, ProjectPhase, ProjectMilestone, MilestoneChecklistItem, ProjectPost, ProjectMember, ProjectInvite } from '../../lib/missions-types';
 import { PostDetail } from './PostDetail';
 import { ImageGrid } from './ImageGrid';
@@ -47,6 +49,8 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
   const [postVisibility, setPostVisibility] = useState<'private' | 'missions' | 'public'>('missions');
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [insufficientModalOpen, setInsufficientModalOpen] = useState(false);
+  const { deduct, isFree, canAfford } = useTokens(userId ?? null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Expanded sections
@@ -67,6 +71,8 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
   const [editDesc, setEditDesc] = useState(project.description);
   const [editVisibility, setEditVisibility] = useState(project.visibility || 'missions');
   const [saving, setSaving] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [addingMember, setAddingMember] = useState(false);
   const [invites, setInvites] = useState<ProjectInvite[]>([]);
   const [inviteUsername, setInviteUsername] = useState('');
@@ -159,6 +165,18 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
       console.error('Failed to save settings', err);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    setDeleting(true);
+    try {
+      await deleteProject(project.id);
+      onBack();
+    } catch (err) {
+      console.error('Failed to delete project', err);
+      setDeleting(false);
+      setDeleteConfirm(false);
     }
   };
 
@@ -267,9 +285,11 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
 
   const handleSubmitPost = async () => {
     if (!userId || !postContent.trim() || !postPhase || !postMilestone) return;
+    if (isFree && !canAfford(1)) { setInsufficientModalOpen(true); return; }
     setSubmitting(true);
     try {
       const post = await createProjectPost(project.id, userId, postContent.trim(), postImages, postPhase, postMilestone, postVisibility);
+      if (isFree) await deduct(1);
       setPosts(prev => [post, ...prev]);
       setPostContent('');
       setPostImages([]);
@@ -294,6 +314,7 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
   const progressPct = Math.round((totalProgress.done / totalProgress.total) * 100);
 
   return (
+    <>
     <div>
       {/* Header */}
       <div className="flex items-start gap-3 mb-4">
@@ -455,9 +476,9 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
                             </button>
                           )
                         )}
-                      </div>
-                    )}
-                  </div>
+          </div>
+        )}
+    </div>
                 ))}
 
                 {/* Add Milestone */}
@@ -833,8 +854,31 @@ export function ProjectDetail({ project, userId, isAdmin, isMember, onBack, onUp
               <p className="text-[10px] text-slate-600 mt-1">Enter the username to send an invite. They must accept before joining.</p>
             )}
           </div>
+
+        {/* Delete Project */}
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/[0.04] p-4">
+          <p className="text-[10px] font-semibold text-red-400 uppercase tracking-wider mb-2">Danger Zone</p>
+          {deleteConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-red-300">Delete this project permanently?</span>
+              <button onClick={handleDeleteProject} disabled={deleting}
+                className="rounded-lg bg-red-500/20 px-3 py-1.5 text-xs font-bold text-red-300 hover:bg-red-500/30 disabled:opacity-40">
+                {deleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+              <button onClick={() => setDeleteConfirm(false)}
+                className="rounded-lg bg-white/10 px-3 py-1.5 text-xs text-slate-400 hover:bg-white/20">Cancel</button>
+            </div>
+          ) : (
+            <button onClick={() => setDeleteConfirm(true)}
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/30 px-4 py-2 text-xs font-bold text-red-400 hover:bg-red-500/10 transition">
+              <Trash2 size={14} /> Delete Project
+            </button>
+          )}
         </div>
+      </div>
       )}
     </div>
+    <InsufficientTokensModal open={insufficientModalOpen} onClose={() => setInsufficientModalOpen(false)} />
+    </>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { supabase } from "../src/lib/supabase";
 import { PageScaffold, SectionBand } from "../components/PageScaffold";
@@ -24,6 +24,28 @@ const EventRegister: React.FC = () => {
   const [submitError, setSubmitError] = useState("");
   const [session, setSession] = useState<any>(null);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+  const uploadFile = async (fieldId: string, file: File) => {
+    if (!event) return;
+    if (file.size > MAX_FILE_SIZE) {
+      setFileError("File must be under 5 MB");
+      return;
+    }
+    setFileError(null);
+    setUploading(fieldId);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${event.slug}/${fieldId}/${Date.now()}_${safeUUID()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("form_uploads").upload(path, file, { upsert: false });
+      if (uploadErr) { setUploading(null); setFileError(uploadErr.message); return; }
+      const { data: signed } = await supabase.storage.from("form_uploads").createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (!signed?.signedUrl) { setUploading(null); setFileError("Upload verification failed"); return; }
+      set(fieldId, signed.signedUrl);
+    } catch { setFileError("Upload failed"); } finally { setUploading(null); }
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -52,11 +74,17 @@ const EventRegister: React.FC = () => {
     load();
   }, [slug]);
 
-  const set = (fieldId: string, val: any) =>
+  const set = (fieldId: string, val: any) => {
     setValues((prev) => ({ ...prev, [fieldId]: val }));
+    setErrors((prev) => { const next = { ...prev }; delete next[fieldId]; return next; });
+  };
 
   const validate = (): boolean => {
     const errs: FieldErrors = {};
+    // Default fields
+    if (!values["_name"] || String(values["_name"]).trim() === "") errs["_name"] = "This field is required";
+    if (!values["_email"] || String(values["_email"]).trim() === "") errs["_email"] = "This field is required";
+    // Custom fields
     for (const f of fields) {
       if (!f.required) continue;
       const v = values[f.id];
@@ -167,6 +195,7 @@ const EventRegister: React.FC = () => {
         </SectionBand>
       ) : (
         <SectionBand>
+          <div className="mx-auto max-w-2xl">
           {/* Header */}
           {event.header_type === "image" && event.header_content && (
             <img src={event.header_content} alt="" className="mb-6 w-full rounded-2xl object-cover max-h-80" />
@@ -180,10 +209,10 @@ const EventRegister: React.FC = () => {
             <div className="-mx-8 md:-mx-10 -mt-8 md:-mt-10 mb-6 rounded-b-[36px] overflow-hidden" dangerouslySetInnerHTML={{ __html: event.header_content }} />
           )}
 
-          <div className="mb-8">
+          <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-white">{event.title}</h1>
             {event.description && <p className="mt-3 text-slate-300/80 leading-relaxed">{event.description}</p>}
-            <div className="mt-4 flex flex-wrap gap-4 text-sm text-slate-400">
+            <div className="mt-4 flex flex-wrap justify-center gap-4 text-sm text-slate-400">
               {event.sessions?.[0]?.date && (
                 <span>📅 {event.sessions.map((s, i) => `${s.date}${s.startTime ? ` ${s.startTime}` : ""}${s.endTime ? `–${s.endTime}` : ""}`).join(", ")}</span>
               )}
@@ -202,6 +231,9 @@ const EventRegister: React.FC = () => {
             <>
               {submitError && (
                 <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{submitError}</div>
+              )}
+              {fileError && (
+                <div className="mb-4 rounded-2xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-100">{fileError}</div>
               )}
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid gap-4 md:grid-cols-2">
@@ -222,9 +254,8 @@ const EventRegister: React.FC = () => {
                     value={values[f.id]}
                     error={errors[f.id]}
                     onChange={(val) => set(f.id, val)}
-                    eventSlug={event?.slug || ""}
                     uploading={uploading}
-                    onUploading={setUploading}
+                    onFileUpload={(file) => uploadFile(f.id, file)}
                   />
                 ))}
 
@@ -235,6 +266,7 @@ const EventRegister: React.FC = () => {
               </form>
             </>
           )}
+          </div>
         </SectionBand>
       )}
     </PageScaffold>
@@ -257,10 +289,9 @@ const FormFieldRenderer: React.FC<{
   value: any;
   error?: string;
   onChange: (val: any) => void;
-  eventSlug: string;
   uploading: string | null;
-  onUploading: (v: string | null) => void;
-}> = ({ field, value, error, onChange, eventSlug, uploading, onUploading }) => {
+  onFileUpload: (file: File) => void;
+}> = ({ field, value, error, onChange, uploading, onFileUpload }) => {
   const baseInput = "w-full rounded-xl border border-white/10 bg-white/[0.04] px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/28";
 
   const displayOnly = ["text", "image", "separator", "rich_html"].includes(field.field_type);
@@ -339,18 +370,10 @@ const FormFieldRenderer: React.FC<{
           <div>
             <input type="file" className="text-sm text-slate-300 file:mr-4 file:rounded-xl file:border-0 file:bg-violet-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-violet-200 hover:file:bg-violet-500/30 disabled:opacity-50"
               disabled={uploading === field.id}
-              onChange={async (e) => {
+              onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
-                onUploading(field.id);
-                try {
-                  const ext = file.name.split(".").pop();
-                  const path = `${eventSlug}/${field.id}/${Date.now()}_${safeUUID()}.${ext}`;
-                  const { error } = await supabase.storage.from("form_uploads").upload(path, file);
-                  if (error) { onChange(null); return; }
-                  const { data: signed } = await supabase.storage.from("form_uploads").createSignedUrl(path, 60 * 60 * 24 * 365);
-                  onChange(signed?.signedUrl || null);
-                } catch (e) { onChange(null); } finally { onUploading(null); }
+                onFileUpload(file);
               }} />
             {uploading === field.id && <p className="mt-1 text-xs text-violet-300">Uploading…</p>}
             {value && uploading !== field.id && <p className="mt-1 text-xs text-emerald-400">File uploaded</p>}
@@ -371,7 +394,7 @@ const FormFieldRenderer: React.FC<{
         return <hr className="my-4 border-white/10" />;
 
       case "rich_html":
-        return field.html_content ? <div className="mb-2" dangerouslySetInnerHTML={{ __html: field.html_content }} /> : null;
+        return field.html_content ? <RichHtmlBlock html={field.html_content} /> : null;
 
       default:
         return <p className="text-sm text-slate-500">Unsupported field type</p>;
@@ -386,6 +409,65 @@ const FormFieldRenderer: React.FC<{
       {error && <p className="mt-1 text-xs text-red-400">{error}</p>}
     </div>
   );
+};
+
+/* ---------- Rich HTML with script execution ---------- */
+
+const RichHtmlBlock: React.FC<{ html: string }> = ({ html }) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const root = ref.current;
+    // Re-execute inline scripts (may be blocked by CSP)
+    const scripts = root.querySelectorAll("script");
+    scripts.forEach((oldScript) => {
+      const newScript = document.createElement("script");
+      Array.from(oldScript.attributes).forEach((attr) => {
+        newScript.setAttribute(attr.name, attr.value);
+      });
+      newScript.textContent = oldScript.textContent;
+      oldScript.replaceWith(newScript);
+    });
+    // CSP-safe: wire up clipboard buttons by data attributes
+    const handler = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const btn = target.closest("[data-clipboard], [data-copy-target]") as HTMLElement | null;
+      if (!btn) return;
+      let text: string | null = null;
+      if (btn.dataset.clipboard) {
+        text = btn.dataset.clipboard;
+      } else if (btn.dataset.copyTarget) {
+        const src = root.querySelector(btn.dataset.copyTarget);
+        text = src?.textContent?.trim() ?? null;
+      }
+      if (!text) return;
+      e.preventDefault();
+      navigator.clipboard.writeText(text).catch(() => {
+        const ta = document.createElement("textarea");
+        ta.value = text!;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try { document.execCommand("copy"); } catch {}
+        document.body.removeChild(ta);
+      });
+      // Show toast if present inside the button or next to it
+      const toast = btn.querySelector("[data-copy-toast]") || btn.parentElement?.querySelector("[data-copy-toast]");
+      if (toast) {
+        toast.classList.add("vzp-show");
+        setTimeout(() => toast.classList.remove("vzp-show"), 1400);
+      }
+      btn.classList.add("vzp-copied");
+      setTimeout(() => btn.classList.remove("vzp-copied"), 1400);
+    };
+    root.addEventListener("click", handler);
+    return () => root.removeEventListener("click", handler);
+  }, [html]);
+
+  return <div ref={ref} className="mb-2" dangerouslySetInnerHTML={{ __html: html }} />;
 };
 
 export default EventRegister;

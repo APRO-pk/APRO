@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Rocket, Image, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { createLaunch } from '../../lib/community-api';
+import { useTokens } from '../../lib/token-utils';
+import { InsufficientTokensModal } from '../../components/Community/TokenModals';
 import { CommunityNavbar } from '../../components/Community/CommunityNavbar';
 
 const NewLaunch: React.FC = () => {
@@ -15,6 +17,8 @@ const NewLaunch: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [user, setUser] = useState<any>(null);
+  const [insufficientModalOpen, setInsufficientModalOpen] = useState(false);
+  const { deduct, isFree, canAfford } = useTokens(user?.id ?? null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -51,9 +55,12 @@ const NewLaunch: React.FC = () => {
   const handleSubmit = async () => {
     if (!content.trim() && images.length === 0) return;
     if (!user) return;
+    const postTokenCost = 2 + images.length * 5;
+    if (isFree && !canAfford(postTokenCost)) { setInsufficientModalOpen(true); return; }
     setSubmitting(true);
     try {
       await createLaunch(user.id, content.trim(), images);
+      if (isFree) await deduct(postTokenCost);
       navigate('/community');
     } catch (err) {
       setSubmitError('Failed to launch. Check console for details.');
@@ -144,9 +151,15 @@ const NewLaunch: React.FC = () => {
             >
               Cancel
             </button>
+            {isFree && (
+              <span className="ml-auto text-[11px] text-slate-500">
+                Cost: {2 + images.length * 5} tokens
+              </span>
+            )}
           </div>
         </div>
       </div>
+      <InsufficientTokensModal open={insufficientModalOpen} onClose={() => setInsufficientModalOpen(false)} />
     </div>
   );
 };
