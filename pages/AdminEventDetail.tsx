@@ -4,7 +4,9 @@ import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
 import type { AdminEvent, FormField } from "../src/lib/forms-types";
 import { FIELD_TYPES, FIELD_TYPE_LABELS } from "../src/lib/forms-types";
-import { ArrowUp, ArrowDown, Trash2, Plus, Save, Check, X, Copy, ExternalLink } from "lucide-react";
+import { ArrowUp, ArrowDown, Trash2, Plus, Save, Check, X, Copy, ExternalLink, Download } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type TabId = "details" | "fields" | "responses";
 
@@ -663,6 +665,39 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
     setConfirmDelete(null);
   };
 
+  const exportPdf = () => {
+    const skipTypes = new Set(["file_upload", "image", "separator", "rich_html", "text"]);
+    const exportFields = fields.filter((f) => !skipTypes.has(f.field_type));
+    const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    doc.setFontSize(14);
+    doc.text("Form Responses", 14, 14);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`${responses.length} response(s)`, 14, 20);
+    doc.setTextColor(0);
+    const head = ["Name", "Email", "Submitted At", ...exportFields.map((f) => f.label)];
+    const body = responses.map((r) => [
+      r.name || "—",
+      r.email || "—",
+      new Date(r.submittedAt).toLocaleString(),
+      ...exportFields.map((f) => {
+        const v = r.answers[f.id];
+        if (Array.isArray(v)) return v.join(", ");
+        return v != null && v !== "" ? String(v) : "—";
+      }),
+    ]);
+    autoTable(doc, {
+      head: [head],
+      body,
+      startY: 24,
+      styles: { fontSize: 7.5, cellPadding: 2, overflow: "linebreak" },
+      headStyles: { fillColor: [76, 29, 149], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      margin: { left: 14, right: 14 },
+    });
+    doc.save(`form-responses-${eventId.slice(0, 8)}.pdf`);
+  };
+
   useEffect(() => {
     const load = async () => {
       setLoading(true);
@@ -700,7 +735,13 @@ const ResponsesTab: React.FC<{ eventId: string; fields: FormField[] }> = ({ even
 
   return (
     <div>
-      <p className="mb-4 text-sm text-slate-400">{responses.length} response(s)</p>
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-slate-400">{responses.length} response(s)</p>
+        <button onClick={exportPdf} disabled={responses.length === 0}
+          className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-4 py-2 text-xs font-semibold text-white transition hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0">
+          <Download size={14} /> Export Data (PDF)
+        </button>
+      </div>
       {loading ? (
         <SurfacePanel>Loading responses…</SurfacePanel>
       ) : responses.length === 0 ? (

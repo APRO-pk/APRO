@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS community_profiles (
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS last_feed_post_id UUID REFERENCES community_posts(id);
+ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS last_feed_post_id UUID REFERENCES community_posts(id) ON DELETE SET NULL;
 ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS last_feed_updated_at TIMESTAMPTZ;
 ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS bio TEXT NOT NULL DEFAULT '';
 ALTER TABLE community_profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT NOT NULL DEFAULT '';
@@ -155,3 +155,8 @@ DROP POLICY IF EXISTS "community_images_select" ON storage.objects;
 CREATE POLICY "community_images_select" ON storage.objects FOR SELECT USING (bucket_id = 'community_images');
 DROP POLICY IF EXISTS "community_images_insert" ON storage.objects;
 CREATE POLICY "community_images_insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'community_images' AND auth.role() = 'authenticated');
+
+-- Migration: allow post deletion when referenced as last_feed_post_id
+ALTER TABLE community_profiles DROP CONSTRAINT IF EXISTS community_profiles_last_feed_post_id_fkey;
+ALTER TABLE community_profiles ADD CONSTRAINT community_profiles_last_feed_post_id_fkey
+  FOREIGN KEY (last_feed_post_id) REFERENCES community_posts(id) ON DELETE SET NULL;
