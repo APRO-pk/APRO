@@ -569,16 +569,9 @@ export const Layout: React.FC = () => {
         >
           <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
-              <div className="text-[10px] uppercase tracking-[0.38em] text-slate-500">
-                APRO Network
-              </div>
-              <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">
-                Aero Propulsion Rocketry Operations
-              </h2>
-              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-300/76">
-                A structured aerospace community for membership, chapter growth,
-                safety discipline, and technical momentum across the world.
-              </p>
+              <h1 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">
+                APRO
+              </h1>
               <div className="mt-4 flex flex-wrap gap-4 text-xs uppercase tracking-[0.22em] text-slate-400">
                 <NavLink to="/legal" className="transition hover:text-white">
                   Legal
