@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, X, Award, Calendar, User, ExternalLink, Download } from "lucide-react";
+import { Search, X, Award, Calendar, User, ExternalLink, Download, ChevronRight } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { PageScaffold, SurfacePanel } from "../components/PageScaffold";
 import jsPDF from "jspdf";
@@ -28,8 +28,11 @@ type Certification = {
 
 const Certifications: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [searchMode, setSearchMode] = useState<'id' | 'name'>('id');
   const [certId, setCertId] = useState(searchParams.get('id') || '');
+  const [nameQuery, setNameQuery] = useState('');
   const [cert, setCert] = useState<Certification | null>(null);
+  const [results, setResults] = useState<Certification[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [pdfGenerating, setPdfGenerating] = useState(false);
@@ -66,6 +69,7 @@ const Certifications: React.FC = () => {
     const id = searchParams.get('id');
     if (id) {
       setCertId(id);
+      setSearchMode('id');
       searchCert(id);
     }
   }, []);
@@ -75,6 +79,7 @@ const Certifications: React.FC = () => {
     setLoading(true);
     setError('');
     setCert(null);
+    setResults([]);
     try {
       const { data, error: err } = await supabase
         .from('certifications')
@@ -87,9 +92,39 @@ const Certifications: React.FC = () => {
     } catch { setError('Search failed. Please try again.'); } finally { setLoading(false); }
   };
 
+  const searchByName = async (query: string) => {
+    const q = query.trim();
+    if (!q) { setError('Enter a name to search.'); setCert(null); setResults([]); return; }
+    setLoading(true);
+    setError('');
+    setCert(null);
+    setResults([]);
+    try {
+      const { data, error: err } = await supabase
+        .from('certifications')
+        .select('id, certification_id, template_id, person_name, issued_at, template:template_id(*)')
+        .ilike('person_name', `%${q}%`)
+        .order('issued_at', { ascending: false })
+        .limit(50);
+      if (err || !data || data.length === 0) { setError('No certifications found with that name.'); return; }
+      setResults(data as unknown as Certification[]);
+      setSearchParams({}, { replace: true });
+    } catch { setError('Search failed. Please try again.'); } finally { setLoading(false); }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    searchCert(certId);
+    if (searchMode === 'id') searchCert(certId);
+    else searchByName(nameQuery);
+  };
+
+  const clearAll = () => {
+    setCertId('');
+    setNameQuery('');
+    setCert(null);
+    setResults([]);
+    setError('');
+    setSearchParams({}, { replace: true });
   };
 
   const generatePDF = async () => {
@@ -133,27 +168,49 @@ const Certifications: React.FC = () => {
             Certification Lookup
           </h1>
           <p className="mt-4 text-base leading-8 text-slate-300/76 max-w-xl mx-auto">
-            Enter an 8-digit certification ID to verify an APRO certification.
+            Search by 8-digit certification ID to verify, or by name to find issued certifications.
           </p>
         </div>
 
         {/* Search */}
         <form onSubmit={handleSubmit} className="mx-auto max-w-lg mb-12">
+          <div className="mb-5 flex justify-center">
+            <div className="inline-flex rounded-full border border-white/10 bg-white/[0.04] p-1">
+              <button type="button" onClick={() => { setSearchMode('id'); setError(''); }}
+                className={`rounded-full px-5 py-2 text-xs font-semibold transition ${searchMode === 'id' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Certification ID
+              </button>
+              <button type="button" onClick={() => { setSearchMode('name'); setError(''); }}
+                className={`rounded-full px-5 py-2 text-xs font-semibold transition ${searchMode === 'name' ? 'bg-violet-600 text-white' : 'text-slate-400 hover:text-white'}`}>
+                Name
+              </button>
+            </div>
+          </div>
           <div className="relative">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input
-              value={certId}
-              onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 8); setCertId(v); }}
-              placeholder="Enter 8-digit certification ID"
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-12 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/30"
-              maxLength={8}
-              inputMode="numeric"
-            />
-            {certId && <button type="button" onClick={() => { setCertId(''); setCert(null); setError(''); setSearchParams({}, { replace: true }); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={18} /></button>}
+            {searchMode === 'id' ? (
+              <input
+                value={certId}
+                onChange={e => { const v = e.target.value.replace(/\D/g, '').slice(0, 8); setCertId(v); }}
+                placeholder="Enter 8-digit certification ID"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-12 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/30"
+                maxLength={8}
+                inputMode="numeric"
+              />
+            ) : (
+              <input
+                value={nameQuery}
+                onChange={e => setNameQuery(e.target.value)}
+                placeholder="Enter person's name (e.g. John Doe)"
+                className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-4 pl-12 pr-12 text-base text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/30"
+                maxLength={80}
+              />
+            )}
+            {(searchMode === 'id' ? certId : nameQuery) && <button type="button" onClick={clearAll} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={18} /></button>}
           </div>
           <div className="flex justify-center pt-4">
             <button type="submit" className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-3.5 text-sm font-semibold text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.3),0_20px_34px_rgba(61,28,120,0.42)] transition hover:-translate-y-0.5">
-              <Search size={16} /> Verify Certification
+              <Search size={16} /> {searchMode === 'id' ? 'Verify Certification' : 'Search Certifications'}
             </button>
           </div>
         </form>
@@ -161,6 +218,30 @@ const Certifications: React.FC = () => {
         {/* Results */}
         {loading && <div className="text-center text-slate-400">Searching...</div>}
         {error && <div className="mx-auto max-w-lg rounded-2xl border border-red-400/20 bg-red-400/10 px-6 py-4 text-sm text-red-200 text-center">{error}</div>}
+
+        {results.length > 0 && (
+          <SurfacePanel className="mx-auto max-w-2xl p-6 md:p-8">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-sm font-bold text-white">{results.length} certification{results.length === 1 ? '' : 's'} found</h3>
+              <span className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Click to view</span>
+            </div>
+            <div className="space-y-3">
+              {results.map(r => (
+                <button key={r.id} onClick={() => { setCert(r); setResults([]); }}
+                  className="w-full rounded-xl border border-white/10 bg-white/[0.03] px-5 py-4 text-left transition hover:bg-white/[0.06] hover:border-violet-500/20 flex items-center justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-white">{r.person_name}</div>
+                    <div className="mt-0.5 text-xs text-slate-500">{r.template?.title || 'Certification'} · {r.certification_id}</div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-500">Issued {new Date(r.issued_at).toLocaleDateString()}</span>
+                    <ChevronRight size={16} className="text-violet-400" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </SurfacePanel>
+        )}
 
         {cert && (
           <>
