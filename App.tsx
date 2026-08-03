@@ -60,7 +60,7 @@ function App() {
             <Route path="legal" element={<Legal />} />
             <Route path="join" element={<MemberApplication />} />
             <Route path="chapter" element={<ChapterApplication />} />
-            <Route path="join" element={<JoinAproApplication />} />
+            <Route path="careers" element={<JoinAproApplication />} />
             <Route path="admin" element={<AdminLogin />} />
             <Route path="login" element={<UserLogin />} />
             <Route path="reset-password" element={<ResetPassword />} />

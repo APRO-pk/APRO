@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { ChevronDown, Check } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { FormShell, formInputClass, formLabelClass } from "../components/PageScaffold";
+
+type JobOpening = { id: string; title: string; category: string; description: string; status: "OPEN" | "CLOSED" };
 
 const JoinAproApplication: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -11,8 +14,21 @@ const JoinAproApplication: React.FC = () => {
     whyJoin: "",
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
+  const [openings, setOpenings] = useState<JobOpening[]>([]);
+  const [jobOpeningId, setJobOpeningId] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    supabase.from("job_openings").select("*").order("created_at", { ascending: false }).then(({ data }) => {
+      if (!cancelled && data) setOpenings(data as JobOpening[]);
+    });
+    return () => { cancelled = true; };
+  }, []);
+
+  const openingsForCategory = openings.filter(o => o.category === formData.roleType && o.status === "OPEN");
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -50,6 +66,7 @@ const JoinAproApplication: React.FC = () => {
           role_type: formData.roleType,
           why_join: formData.whyJoin || null,
           resume_path: filePath,
+          job_opening_id: jobOpeningId,
         },
       ]);
       if (insertError) throw insertError;
@@ -57,6 +74,7 @@ const JoinAproApplication: React.FC = () => {
       setMessage("Application submitted successfully.");
       setFormData({ fullName: "", email: "", phone: "", roleType: "", whyJoin: "" });
       setResumeFile(null);
+      setJobOpeningId(null);
       const fileInput = document.getElementById("resume") as HTMLInputElement | null;
       if (fileInput) fileInput.value = "";
     } catch (error: any) {
@@ -90,7 +108,7 @@ const JoinAproApplication: React.FC = () => {
             </div>
             <div className="md:col-span-2">
               <label className={formLabelClass}>Role Type</label>
-              <select name="roleType" className={formInputClass} required value={formData.roleType} onChange={handleChange}>
+              <select name="roleType" className={formInputClass} required value={formData.roleType} onChange={e => { handleChange(e); setJobOpeningId(null); }}>
                 <option value="" disabled>Select an option...</option>
                 <option value="Internship">Internship</option>
                 <option value="Part-Time Role">Part-Time Role</option>
@@ -98,6 +116,45 @@ const JoinAproApplication: React.FC = () => {
                 <option value="Freelance / Contract">Freelance / Contract</option>
               </select>
             </div>
+            {formData.roleType && (
+              <div className="md:col-span-2">
+                <label className={formLabelClass}>Current Openings — {formData.roleType}</label>
+                {openingsForCategory.length === 0 ? (
+                  <p className="text-sm text-slate-500">No open positions in this category right now. You can still apply and we will keep you on file.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {openingsForCategory.map(o => {
+                      const selected = jobOpeningId === o.id;
+                      const expanded = expandedId === o.id;
+                      return (
+                        <div key={o.id} className={`rounded-xl border transition ${selected ? "border-violet-400/40 bg-violet-500/10" : "border-white/10 bg-white/[0.03]"}`}>
+                          <button type="button" onClick={() => setJobOpeningId(prev => prev === o.id ? null : o.id)} className="flex w-full items-start gap-3 p-3 text-left">
+                            <span className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition ${selected ? "border-violet-400 bg-violet-500 text-white" : "border-white/25"}`}>
+                              {selected && <Check size={10} strokeWidth={3} />}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="text-sm font-semibold text-white">{o.title}</span>
+                              {o.description ? (
+                                <span className="mt-1 block text-[10px] uppercase tracking-[0.15em] text-violet-300/70">{o.category}</span>
+                              ) : null}
+                            </span>
+                          </button>
+                          {o.description ? (
+                            <>
+                              <button type="button" onClick={() => setExpandedId(prev => prev === o.id ? null : o.id)}
+                                className="inline-flex items-center gap-1 px-3 pb-2 text-[11px] font-semibold text-violet-300 hover:text-violet-200 transition">
+                                {expanded ? "Hide details" : "Show details"} <ChevronDown size={13} className={`transition-transform ${expanded ? "rotate-180" : ""}`} />
+                              </button>
+                              {expanded && <p className="px-3 pb-3 text-xs leading-5 text-slate-300 whitespace-pre-line">{o.description}</p>}
+                            </>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
             <div className="md:col-span-2">
               <label className={formLabelClass}>Why do you want to join APRO?</label>
               <textarea

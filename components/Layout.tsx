@@ -582,6 +582,9 @@ export const Layout: React.FC = () => {
                 <NavLink to="/contact" className="transition hover:text-white">
                   Contact
                 </NavLink>
+                <NavLink to="/careers" className="transition hover:text-white">
+                  Careers
+                </NavLink>
               </div>
             </div>
 

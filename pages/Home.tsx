@@ -48,7 +48,7 @@ const routes = [
     title: "Join APRO",
     description:
       "Contributor, internship, and internal execution roles across engineering and operations.",
-    to: "/join",
+    to: "/careers",
     icon: User,
   },
   {
@@ -264,7 +264,7 @@ const Home: React.FC = () => {
 
             {/* Join APRO */}
             <Link
-              to="/join"
+              to="/careers"
               className="group px-0 py-10 transition duration-300 hover:bg-white/[0.025] md:px-2 xl:px-4 border-b border-white/10 lg:border-b-0 lg:border-r"
             >
               <div className="relative overflow-hidden rounded-[28px] px-2 py-2 md:px-6">
