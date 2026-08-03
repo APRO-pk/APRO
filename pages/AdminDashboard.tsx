@@ -5,9 +5,12 @@ import {
   Search, X, Ban, CheckCircle, Clock, Mail, Activity, ChevronRight,
   Wifi, WifiOff, UserX, UserCheck, MoreHorizontal, LogOut, ExternalLink,
   RefreshCw, MessageCircle, Repeat2, Eye, Flag, AlertTriangle, Award, Plus, Trash2, Save, Edit3, Upload,
+  ListChecks, Download, Loader2,
 } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { getCachedDisplayName } from "../src/lib/community-api";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { AdminShell, SurfacePanel } from "../components/PageScaffold";
 
 type AdminUser = { id: number; username: string; auth_id: string };
@@ -786,6 +789,9 @@ const CertificationsSection: React.FC<{ admin: AdminUser | null }> = ({ admin })
   const [showTemplateForm, setShowTemplateForm] = useState(false);
   const [editTemplate, setEditTemplate] = useState<any>(null);
   const [showIssueForm, setShowIssueForm] = useState(false);
+  const [showBulkForm, setShowBulkForm] = useState(false);
+  const [bulkForm, setBulkForm] = useState({ names: '', template_id: '' });
+  const [bulkIssuing, setBulkIssuing] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [templateForm, setTemplateForm] = useState({ title: '', description: '', start_date: '', end_date: '', logo_url: '', remarks: '', invert_logo: false });
   const [issueForm, setIssueForm] = useState({ person_name: '', template_id: '', certification_id: '' });
@@ -875,6 +881,56 @@ const CertificationsSection: React.FC<{ admin: AdminUser | null }> = ({ admin })
     await fetchData();
   };
 
+  const bulkIssue = async () => {
+    const names = bulkForm.names.split(',').map(n => n.trim()).filter(Boolean);
+    if (names.length === 0 || !bulkForm.template_id) return;
+    setBulkIssuing(true);
+    setMsg('');
+    let issued = 0;
+    let failed = 0;
+    for (const name of names) {
+      const { data: idData, error: idErr } = await supabase.rpc('generate_certification_id');
+      if (idErr) { failed++; continue; }
+      const { error } = await supabase.from('certifications').insert({
+        certification_id: idData, template_id: bulkForm.template_id,
+        person_name: name, issued_by: admin?.auth_id || '',
+      });
+      if (error) failed++; else issued++;
+    }
+    setMsg(`Bulk issue complete: ${issued} issued${failed ? `, ${failed} failed` : ''}.`);
+    setBulkIssuing(false);
+    setBulkForm({ names: '', template_id: '' });
+    setShowBulkForm(false);
+    await fetchData();
+    setTimeout(() => setMsg(''), 5000);
+  };
+
+  const exportCertsPdf = () => {
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+    doc.setFontSize(14);
+    doc.text('APRO Certifications', 14, 14);
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text(`${certs.length} certification(s) issued`, 14, 20);
+    doc.setTextColor(0);
+    autoTable(doc, {
+      head: [['#', 'Name', 'Certification ID', 'Template', 'Issued At']],
+      body: certs.map((c, i) => [
+        String(i + 1),
+        c.person_name,
+        c.certification_id,
+        c.template?.title || 'Unknown',
+        new Date(c.issued_at).toLocaleDateString(),
+      ]),
+      startY: 24,
+      styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+      headStyles: { fillColor: [76, 29, 149], textColor: 255, fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [245, 243, 255] },
+      margin: { left: 14, right: 14 },
+    });
+    doc.save('apro-certifications.pdf');
+  };
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -885,6 +941,9 @@ const CertificationsSection: React.FC<{ admin: AdminUser | null }> = ({ admin })
         <div className="flex gap-2">
           <button onClick={() => { setEditTemplate(null); setTemplateForm({ title: '', description: '', start_date: '', end_date: '', logo_url: '', remarks: '', invert_logo: false }); setShowTemplateForm(true); }} className="rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-4 py-2 text-xs font-semibold text-white"><Plus size={14} className="inline mr-1" /> New Template</button>
           <button onClick={() => setShowIssueForm(true)} className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.06]"><Award size={14} className="inline mr-1" /> Issue</button>
+          <button onClick={() => setShowBulkForm(true)} className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.06]"><ListChecks size={14} className="inline mr-1" /> Bulk Issue</button>
+          <button onClick={exportCertsPdf} disabled={certs.length === 0}
+            className="rounded-full border border-white/10 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-white/[0.06] disabled:opacity-40"><Download size={14} className="inline mr-1" /> Export PDF</button>
         </div>
       </div>
 
@@ -1019,6 +1078,40 @@ const CertificationsSection: React.FC<{ admin: AdminUser | null }> = ({ admin })
               </div>
             </SurfacePanel>
           )}
+        </div>
+      )}
+      {showBulkForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0c101a] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 p-6">
+              <h2 className="text-xl font-bold text-white">Bulk Issue Certifications</h2>
+              <button onClick={() => setShowBulkForm(false)} className="text-sm font-semibold text-slate-400 hover:text-white">Close</button>
+            </div>
+            <div className="overflow-y-auto p-6 space-y-4">
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.15em] text-slate-500">Names (comma separated)</label>
+                <textarea value={bulkForm.names} onChange={e => setBulkForm({ ...bulkForm, names: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-violet-500/30 mt-1" rows={5}
+                  placeholder="John Doe, Jane Smith, Bob Johnson" />
+                <p className="mt-1 text-xs text-slate-500">{bulkForm.names.split(',').map(n => n.trim()).filter(Boolean).length} name(s) detected</p>
+              </div>
+              <div>
+                <label className="text-[10px] uppercase tracking-[0.15em] text-slate-500">Template</label>
+                <select value={bulkForm.template_id} onChange={e => setBulkForm({ ...bulkForm, template_id: e.target.value })}
+                  className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white outline-none focus:border-violet-500/30 mt-1">
+                  <option value="" className="bg-[#0c101a]">Select a template...</option>
+                  {templates.map(t => <option key={t.id} value={t.id} className="bg-[#0c101a]">{t.title}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 border-t border-white/10 p-6">
+              <button onClick={bulkIssue} disabled={bulkIssuing || !bulkForm.names.trim() || !bulkForm.template_id}
+                className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-50">
+                {bulkIssuing ? <><Loader2 size={14} className="animate-spin" /> Issuing...</> : <><ListChecks size={14} /> Issue All</>}
+              </button>
+              <button onClick={() => setShowBulkForm(false)} className="rounded-full border border-white/10 px-5 py-2.5 text-xs text-slate-300 hover:bg-white/[0.06]">Cancel</button>
+            </div>
+          </div>
         </div>
       )}
     </div>
