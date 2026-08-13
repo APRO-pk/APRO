@@ -16,6 +16,7 @@ import {
   ExternalLink,
   FileText,
   Award,
+  Briefcase,
 } from "lucide-react";
 import { FaWhatsapp } from "react-icons/fa";
 import { CurrencySelector } from "../src/components/CurrencySelector";
@@ -272,6 +273,13 @@ export const Layout: React.FC = () => {
                       <Award size={14} />
                       Certifications
                     </NavLink>
+                    <NavLink
+                      to="/careers"
+                      className="flex items-center gap-2.5 px-4 py-2.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/[0.06] transition-all"
+                    >
+                      <Briefcase size={14} />
+                      Careers
+                    </NavLink>
                     <a
                       href="https://launchpad.apro.pk"
                       target="_blank"
@@ -464,6 +472,14 @@ export const Layout: React.FC = () => {
                     >
                       <Award size={18} className="shrink-0" />
                       Certifications
+                    </NavLink>
+                    <NavLink
+                      to="/careers"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm font-semibold text-slate-300 transition-all hover:border-white/14 hover:bg-white/[0.06] hover:text-white"
+                    >
+                      <Briefcase size={18} className="shrink-0" />
+                      Careers
                     </NavLink>
                     <a
                       href="https://launchpad.apro.pk"
