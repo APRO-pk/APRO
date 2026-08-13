@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Briefcase, Plus, Trash2, X } from "lucide-react";
+import { Briefcase, Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { AdminShell, GhostButton, SurfacePanel } from "../components/PageScaffold";
 
@@ -21,8 +21,10 @@ const CareerApplicationsPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabStatus>("PENDING");
   const [counts, setCounts] = useState({ ALL: 0, PENDING: 0, APPROVED: 0, REJECTED: 0 });
   const [showOpeningForm, setShowOpeningForm] = useState(false);
+  const [editingOpening, setEditingOpening] = useState<JobOpening | null>(null);
   const [savingOpening, setSavingOpening] = useState(false);
   const [openingForm, setOpeningForm] = useState({ title: "", category: CATEGORIES[0], description: "", status: "OPEN" as "OPEN" | "CLOSED" });
+  const resetOpeningForm = () => setOpeningForm({ title: "", category: CATEGORIES[0], description: "", status: "OPEN" });
 
   const fetchCounts = async () => {
     const [allRes, pendingRes, approvedRes, rejectedRes] = await Promise.all([
@@ -62,20 +64,32 @@ const CareerApplicationsPage: React.FC = () => {
   };
   useEffect(() => { if (view === "openings") fetchOpenings(); }, [view]);
 
-  const addOpening = async () => {
+  const saveOpening = async () => {
     if (!openingForm.title.trim()) return;
     setSavingOpening(true);
     try {
-      const { error } = await supabase.from("job_openings").insert({
+      const payload = {
         title: openingForm.title.trim(),
         category: openingForm.category,
         description: openingForm.description.trim(),
         status: openingForm.status,
-      });
+      };
+      let error: { message?: string } | null = null;
+      if (editingOpening) {
+        const res = await supabase.from("job_openings").update(payload).eq("id", editingOpening.id);
+        error = res.error;
+        if (!res.error) {
+          setOpenings(prev => prev.map(o => o.id === editingOpening.id ? { ...o, ...payload } : o));
+        }
+      } else {
+        const res = await supabase.from("job_openings").insert(payload);
+        error = res.error;
+        if (!res.error) await fetchOpenings();
+      }
       if (!error) {
         setShowOpeningForm(false);
-        setOpeningForm({ title: "", category: CATEGORIES[0], description: "", status: "OPEN" });
-        await fetchOpenings();
+        setEditingOpening(null);
+        resetOpeningForm();
       }
     } finally {
       setSavingOpening(false);
@@ -129,10 +143,10 @@ const CareerApplicationsPage: React.FC = () => {
         <>
           <div className="mt-6 flex items-center justify-between">
             <h2 className="text-xl font-bold text-white">Job Openings</h2>
-            <button onClick={() => setShowOpeningForm(true)} className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-5 py-2.5 text-xs font-semibold text-white"><Plus size={14} /> Add Opening</button>
+            <button onClick={() => { setEditingOpening(null); resetOpeningForm(); setShowOpeningForm(true); }} className="inline-flex items-center gap-2 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-5 py-2.5 text-xs font-semibold text-white"><Plus size={14} /> Add Opening</button>
           </div>
           <div className="mt-4 space-y-4">
-            {openings.length === 0 ? <SurfacePanel>No job openings yet. Add one to show it in the career application form.</SurfacePanel> : openings.map((o) => <SurfacePanel key={o.id} className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-3"><h3 className="text-lg font-bold text-white">{o.title}</h3><StatusPill status={o.status} /><span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-300">{o.category}</span></div>{o.description ? <p className="mt-1 text-sm text-slate-400 line-clamp-2">{o.description}</p> : null}<p className="mt-1 text-xs text-slate-500">Posted: {new Date(o.created_at).toLocaleString()}</p></div><div className="flex flex-wrap gap-2 shrink-0"><button onClick={() => toggleOpeningStatus(o)} className={`rounded-full px-4 py-2 text-xs font-bold text-white transition ${o.status === "OPEN" ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}`}>{o.status === "OPEN" ? "Close Opening" : "Reopen"}</button><button onClick={() => deleteOpening(o)} className="inline-flex items-center gap-1 rounded-full border border-red-400/20 px-4 py-2 text-xs font-bold text-red-300 hover:bg-red-400/10 transition"><Trash2 size={13} /> Delete</button></div></div></SurfacePanel>)}
+            {openings.length === 0 ? <SurfacePanel>No job openings yet. Add one to show it in the career application form.</SurfacePanel> : openings.map((o) => <SurfacePanel key={o.id} className="p-5"><div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"><div className="min-w-0"><div className="flex flex-wrap items-center gap-3"><h3 className="text-lg font-bold text-white">{o.title}</h3><StatusPill status={o.status} /><span className="rounded-full border border-white/10 px-3 py-1 text-xs font-semibold text-slate-300">{o.category}</span></div>{o.description ? <p className="mt-1 text-sm text-slate-400 line-clamp-2">{o.description}</p> : null}<p className="mt-1 text-xs text-slate-500">Posted: {new Date(o.created_at).toLocaleString()}</p></div><div className="flex flex-wrap gap-2 shrink-0"><button onClick={() => { setOpeningForm({ title: o.title, category: o.category, description: o.description, status: o.status }); setEditingOpening(o); setShowOpeningForm(true); }} className="inline-flex items-center gap-1 rounded-full border border-white/10 px-4 py-2 text-xs font-bold text-slate-300 hover:bg-white/[0.07] transition"><Pencil size={13} /> Edit</button><button onClick={() => toggleOpeningStatus(o)} className={`rounded-full px-4 py-2 text-xs font-bold text-white transition ${o.status === "OPEN" ? "bg-yellow-600 hover:bg-yellow-700" : "bg-green-600 hover:bg-green-700"}`}>{o.status === "OPEN" ? "Close Opening" : "Reopen"}</button><button onClick={() => deleteOpening(o)} className="inline-flex items-center gap-1 rounded-full border border-red-400/20 px-4 py-2 text-xs font-bold text-red-300 hover:bg-red-400/10 transition"><Trash2 size={13} /> Delete</button></div></div></SurfacePanel>)}
           </div>
         </>
       )}
@@ -141,7 +155,7 @@ const CareerApplicationsPage: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
           <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0c101a] shadow-2xl">
             <div className="flex items-center justify-between border-b border-white/10 p-6">
-              <h2 className="text-xl font-bold text-white">Add Job Opening</h2>
+              <h2 className="text-xl font-bold text-white">{editingOpening ? "Edit Job Opening" : "Add Job Opening"}</h2>
               <button onClick={() => setShowOpeningForm(false)} className="text-sm font-semibold text-slate-400 hover:text-white"><X size={18} /></button>
             </div>
             <div className="overflow-y-auto p-6 space-y-4">
@@ -168,7 +182,7 @@ const CareerApplicationsPage: React.FC = () => {
               </div>
             </div>
             <div className="flex gap-3 border-t border-white/10 p-6">
-              <button onClick={addOpening} disabled={savingOpening || !openingForm.title.trim()} className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-50">{savingOpening ? "Saving..." : <><Plus size={14} /> Add Opening</>}</button>
+              <button onClick={saveOpening} disabled={savingOpening || !openingForm.title.trim()} className="inline-flex items-center gap-2 rounded-full bg-violet-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-violet-700 disabled:opacity-50">{savingOpening ? "Saving..." : editingOpening ? <><Pencil size={14} /> Save Changes</> : <><Plus size={14} /> Add Opening</>}</button>
               <button onClick={() => setShowOpeningForm(false)} className="rounded-full border border-white/10 px-5 py-2.5 text-xs text-slate-300 hover:bg-white/[0.06]">Cancel</button>
             </div>
           </div>
