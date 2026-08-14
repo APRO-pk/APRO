@@ -39,15 +39,18 @@ const UserLogin: React.FC = () => {
         return;
       }
 
-      const { data: memberRow, error: memberError } = await supabase
-        .from("members")
-        .select("*")
-        .eq("auth_user_id", user.id)
-        .single();
+      const { data: memberRow, error: memberError } = await supabase.rpc("get_my_member_account");
 
-      if (memberError || !memberRow) {
+      if (memberError) {
+        console.error("[UserLogin] Failed to load member account", memberError);
         await supabase.auth.signOut();
-        setError("No member account was found for this user.");
+        setError("Your member account could not be checked. Please try again.");
+        return;
+      }
+
+      if (!memberRow) {
+        await supabase.auth.signOut();
+        setError("Your login exists, but its membership application is incomplete. Return to the student application and submit it again using the same email and password.");
         return;
       }
 

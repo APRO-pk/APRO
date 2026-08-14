@@ -121,9 +121,26 @@ const MemberApplication: React.FC = () => {
       return currentSession;
     }
 
+<<<<<<< HEAD:pages/MemberApplication.tsx
     console.info("[MemberApplication] No session found. Creating auth account before application insert.");
+=======
+    const signInToExistingAccount = async () => {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: formData.email.trim(),
+        password: formData.password,
+      });
+      if (error || !data.session) {
+        console.error("[StudentApplication] Existing account sign-in failed", error);
+        throw error ?? new Error("Authenticated session was not established.");
+      }
+      setAuthSession(data.session);
+      return data.session;
+    };
+
+    console.info("[StudentApplication] No session found. Creating auth account before application insert.");
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email: formData.email,
+      email: formData.email.trim(),
       password: formData.password,
       options: {
         data: {
@@ -134,7 +151,15 @@ const MemberApplication: React.FC = () => {
     });
 
     if (authError) {
+<<<<<<< HEAD:pages/MemberApplication.tsx
       console.error("[MemberApplication] signUp failed", authError);
+=======
+      console.error("[StudentApplication] signUp failed", authError);
+      const message = authError.message.toLowerCase();
+      if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
+        return signInToExistingAccount();
+      }
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
       throw authError;
     }
 
@@ -144,6 +169,7 @@ const MemberApplication: React.FC = () => {
       return authData.session;
     }
 
+<<<<<<< HEAD:pages/MemberApplication.tsx
     console.info("[MemberApplication] signUp returned no session. Attempting password sign-in.");
     const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
       email: formData.email,
@@ -152,10 +178,17 @@ const MemberApplication: React.FC = () => {
 
     if (signInError) {
       console.error("[MemberApplication] signInWithPassword after signUp failed", signInError);
+=======
+    console.info("[StudentApplication] signUp returned no session. Attempting account sign-in.");
+    try {
+      return await signInToExistingAccount();
+    } catch (signInError) {
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
       throw new Error(
-        "Account was created, but no authenticated session is available yet. Check Supabase email confirmation settings or sign in before submitting."
+        "Your account exists, but it cannot sign in yet. Confirm the email if confirmation is enabled, then submit the application again."
       );
     }
+<<<<<<< HEAD:pages/MemberApplication.tsx
 
     if (!signInData.session) {
       console.error("[MemberApplication] signInWithPassword succeeded without a session.", signInData);
@@ -164,6 +197,8 @@ const MemberApplication: React.FC = () => {
 
     setAuthSession(signInData.session);
     return signInData.session;
+=======
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -202,22 +237,23 @@ const MemberApplication: React.FC = () => {
       return;
     }
 
-    let createdMemberRowId: number | null = null;
-    let createdApplicationId: number | null = null;
+    let activeAuthUserId: string | null = null;
 
     try {
       setSubmitting(true);
       const session = await ensureAuthenticatedSession();
       const authUserId = session.user.id;
+      activeAuthUserId = authUserId;
 
       if (!authUserId) {
         throw new Error("You must be authenticated before submitting an application.");
       }
 
-      if (session.user.email && session.user.email !== formData.email) {
+      if (session.user.email?.toLowerCase() !== formData.email.trim().toLowerCase()) {
         throw new Error("The signed-in account email does not match the application email.");
       }
 
+<<<<<<< HEAD:pages/MemberApplication.tsx
       // Create community profile with username
       const { error: profileError } = await supabase
         .from('community_profiles')
@@ -231,9 +267,13 @@ const MemberApplication: React.FC = () => {
       const memberInsertPayload = {
         auth_user_id: authUserId,
         member_id: null,
+=======
+      const applicationPayload = {
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
         full_name: formData.fullName,
-        email: formData.email,
+        email: formData.email.trim(),
         phone: formData.phone,
+<<<<<<< HEAD:pages/MemberApplication.tsx
         member_type: "MEMBER",
         account_status: "PENDING",
       };
@@ -267,9 +307,33 @@ const MemberApplication: React.FC = () => {
 
       if (applicationError) {
         console.error("[MemberApplication] applications insert failed", applicationError);
+=======
+        institution: formData.institution,
+        date_of_birth: formData.dob,
+        cnic: formData.cnic,
+        major_or_title: formData.majorOrTitle,
+        cert_level: formData.certLevel,
+        emergency_contact: formData.emergencyContact,
+        has_explosives_history: formData.explosivesHistory === "YES",
+        agrees_to_safety_code: formData.antiWeaponization === "YES",
+        agrees_to_legal: formData.legalAgree,
+        agrees_to_pledge: formData.pledgeAgree,
+      };
+
+      console.info("[StudentApplication] Submitting authenticated application", { authUserId });
+      const { data: applicationResult, error: applicationError } = await supabase.rpc(
+        "submit_student_application",
+        { p_application: applicationPayload },
+      );
+
+      if (applicationError) {
+        console.error("[StudentApplication] Atomic application submission failed", applicationError);
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
         throw applicationError;
       }
+      console.info("[StudentApplication] Application transaction completed", applicationResult);
 
+<<<<<<< HEAD:pages/MemberApplication.tsx
       createdApplicationId = applicationData.id;
 
       // 4) Create student details row
@@ -300,6 +364,9 @@ const MemberApplication: React.FC = () => {
       }
 
       // 5) Sign out so they don't stay logged in before approval
+=======
+      // Pending applicants should not remain signed in to protected member areas.
+>>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
       await supabase.auth.signOut();
       setAuthSession(null);
 
@@ -311,16 +378,9 @@ const MemberApplication: React.FC = () => {
     } catch (error: any) {
       console.error("[MemberApplication] Submission failed", {
         error,
-        createdMemberRowId,
-        createdApplicationId,
-        authUserId: authSession?.user?.id ?? null,
+        authUserId: activeAuthUserId,
       });
-      setMessage(error.message || "Something went wrong while submitting.");
-
-      // Frontend-only limitation:
-      // if auth user was created and DB insert failed later,
-      // cleanup is not reliable from here without admin/service role access.
-      // For now, handle manually if needed in Supabase dashboard.
+      setMessage(error.message || "Something went wrong while submitting. You can safely retry with the same account details.");
     } finally {
       setSubmitting(false);
     }
