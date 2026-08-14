@@ -11,13 +11,8 @@ const initialFormData = {
   fullName: "",
   username: "",
   dob: "",
-  cnic: "",
   phone: "",
   email: "",
-  institution: "",
-  majorOrTitle: "",
-  certLevel: "",
-  emergencyContact: "",
   explosivesHistory: "",
   antiWeaponization: "",
   legalAgree: false,
@@ -229,12 +224,7 @@ const MemberApplication: React.FC = () => {
         full_name: formData.fullName,
         email: formData.email.trim(),
         phone: formData.phone,
-        institution: formData.institution,
         date_of_birth: formData.dob,
-        cnic: formData.cnic,
-        major_or_title: formData.majorOrTitle,
-        cert_level: formData.certLevel,
-        emergency_contact: formData.emergencyContact,
         has_explosives_history: formData.explosivesHistory === "YES",
         agrees_to_safety_code: formData.antiWeaponization === "YES",
         agrees_to_legal: formData.legalAgree,
@@ -243,7 +233,7 @@ const MemberApplication: React.FC = () => {
 
       console.info("[MemberApplication] Submitting authenticated application", { authUserId });
       const { data: applicationResult, error: applicationError } = await supabase.rpc(
-        "submit_student_application",
+        "submit_member_application",
         { p_application: applicationPayload },
       );
 
@@ -324,27 +314,12 @@ const MemberApplication: React.FC = () => {
 
                 <div>
                   <label className={formLabelClass}>
-                    CNIC / B-Form Number
-                  </label>
-                  <input
-                    name="cnic"
-                    placeholder="cnic"
-                    className={inputBase}
-                    required
-                    value={formData.cnic}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Phone Number
+                    Phone Number (optional)
                   </label>
                   <input
                     name="phone"
                     placeholder="phone"
                     className={inputBase}
-                    required
                     value={formData.phone}
                     onChange={handleChange}
                   />
@@ -389,77 +364,6 @@ const MemberApplication: React.FC = () => {
                     className={inputBase}
                     required
                     value={formData.email}
-                    onChange={handleChange}
-                  />
-                </div>
-              </div>
-            </section>
-
-            <section>
-              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
-                Academic / Professional Details
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div>
-                  <label className={formLabelClass}>
-                    Institution / Company
-                  </label>
-                  <input
-                    name="institution"
-                    placeholder="institution"
-                    className={inputBase}
-                    required
-                    value={formData.institution}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Major / Job Title
-                  </label>
-                  <input
-                    name="majorOrTitle"
-                    placeholder="title"
-                    className={inputBase}
-                    required
-                    value={formData.majorOrTitle}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Current Certification Level
-                  </label>
-                  <select
-                    name="certLevel"
-                    className={inputBase}
-                    required
-                    value={formData.certLevel}
-                    onChange={handleChange}
-                  >
-                    <option value="" disabled>
-                      Select level
-                    </option>
-                    <option value="NONE">None</option>
-                    <option value="LEVEL_1">Level 1</option>
-                    <option value="LEVEL_2">Level 2</option>
-                    <option value="LEVEL_3">Level 3</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className={formLabelClass}>
-                    Emergency Contact (Name &amp; Relation)
-                  </label>
-                  <input
-                    name="emergencyContact"
-                    placeholder="e.g., Ahmad (Brother)"
-                    className={inputBase}
-                    required
-                    value={formData.emergencyContact}
                     onChange={handleChange}
                   />
                 </div>
