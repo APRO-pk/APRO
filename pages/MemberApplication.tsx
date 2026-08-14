@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import type { Session } from "@supabase/supabase-js";
 import { FormShell, formInputClass, formLabelClass } from "../components/PageScaffold";
@@ -11,11 +11,13 @@ const initialFormData = {
   fullName: "",
   username: "",
   dob: "",
+  cnic: "",
   phone: "",
   email: "",
   institution: "",
   majorOrTitle: "",
   certLevel: "",
+  emergencyContact: "",
   explosivesHistory: "",
   antiWeaponization: "",
   legalAgree: false,
@@ -121,45 +123,37 @@ const MemberApplication: React.FC = () => {
       return currentSession;
     }
 
-<<<<<<< HEAD:pages/MemberApplication.tsx
-    console.info("[MemberApplication] No session found. Creating auth account before application insert.");
-=======
     const signInToExistingAccount = async () => {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email.trim(),
         password: formData.password,
       });
       if (error || !data.session) {
-        console.error("[StudentApplication] Existing account sign-in failed", error);
+        console.error("[MemberApplication] Existing account sign-in failed", error);
         throw error ?? new Error("Authenticated session was not established.");
       }
       setAuthSession(data.session);
       return data.session;
     };
 
-    console.info("[StudentApplication] No session found. Creating auth account before application insert.");
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
+    console.info("[MemberApplication] No session found. Creating auth account before application insert.");
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: formData.email.trim(),
       password: formData.password,
       options: {
         data: {
           full_name: formData.fullName,
-          member_type: "MEMBER",
+          member_type: "STUDENT",
         },
       },
     });
 
     if (authError) {
-<<<<<<< HEAD:pages/MemberApplication.tsx
       console.error("[MemberApplication] signUp failed", authError);
-=======
-      console.error("[StudentApplication] signUp failed", authError);
       const message = authError.message.toLowerCase();
       if (message.includes("already") || message.includes("registered") || message.includes("exists")) {
         return signInToExistingAccount();
       }
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
       throw authError;
     }
 
@@ -169,36 +163,14 @@ const MemberApplication: React.FC = () => {
       return authData.session;
     }
 
-<<<<<<< HEAD:pages/MemberApplication.tsx
-    console.info("[MemberApplication] signUp returned no session. Attempting password sign-in.");
-    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    if (signInError) {
-      console.error("[MemberApplication] signInWithPassword after signUp failed", signInError);
-=======
-    console.info("[StudentApplication] signUp returned no session. Attempting account sign-in.");
+    console.info("[MemberApplication] signUp returned no session. Attempting account sign-in.");
     try {
       return await signInToExistingAccount();
-    } catch (signInError) {
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
+    } catch {
       throw new Error(
         "Your account exists, but it cannot sign in yet. Confirm the email if confirmation is enabled, then submit the application again."
       );
     }
-<<<<<<< HEAD:pages/MemberApplication.tsx
-
-    if (!signInData.session) {
-      console.error("[MemberApplication] signInWithPassword succeeded without a session.", signInData);
-      throw new Error("Authenticated session was not established. Please sign in and try again.");
-    }
-
-    setAuthSession(signInData.session);
-    return signInData.session;
-=======
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -253,61 +225,10 @@ const MemberApplication: React.FC = () => {
         throw new Error("The signed-in account email does not match the application email.");
       }
 
-<<<<<<< HEAD:pages/MemberApplication.tsx
-      // Create community profile with username
-      const { error: profileError } = await supabase
-        .from('community_profiles')
-        .upsert({ id: authUserId, display_name: formData.username }, { onConflict: 'id' });
-      if (profileError) {
-        console.error("[MemberApplication] community_profiles upsert failed", profileError);
-        throw profileError;
-      }
-
-      // 2) Create members row
-      const memberInsertPayload = {
-        auth_user_id: authUserId,
-        member_id: null,
-=======
       const applicationPayload = {
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
         full_name: formData.fullName,
         email: formData.email.trim(),
         phone: formData.phone,
-<<<<<<< HEAD:pages/MemberApplication.tsx
-        member_type: "MEMBER",
-        account_status: "PENDING",
-      };
-      console.info("[MemberApplication] Inserting member row", memberInsertPayload);
-
-      const { data: memberData, error: memberError } = await supabase
-        .from("members")
-        .insert([memberInsertPayload])
-        .select("id")
-        .single();
-
-      if (memberError) {
-        console.error("[MemberApplication] members insert failed", memberError);
-        throw memberError;
-      }
-
-      createdMemberRowId = memberData.id;
-
-      // 3) Create applications row
-      const { data: applicationData, error: applicationError } = await supabase
-        .from("applications")
-        .insert([
-          {
-            applicant_type: "MEMBER",
-            member_id: createdMemberRowId,
-            status: "PENDING",
-          },
-        ])
-        .select("id")
-        .single();
-
-      if (applicationError) {
-        console.error("[MemberApplication] applications insert failed", applicationError);
-=======
         institution: formData.institution,
         date_of_birth: formData.dob,
         cnic: formData.cnic,
@@ -320,53 +241,27 @@ const MemberApplication: React.FC = () => {
         agrees_to_pledge: formData.pledgeAgree,
       };
 
-      console.info("[StudentApplication] Submitting authenticated application", { authUserId });
+      console.info("[MemberApplication] Submitting authenticated application", { authUserId });
       const { data: applicationResult, error: applicationError } = await supabase.rpc(
         "submit_student_application",
         { p_application: applicationPayload },
       );
 
       if (applicationError) {
-        console.error("[StudentApplication] Atomic application submission failed", applicationError);
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
+        console.error("[MemberApplication] Atomic application submission failed", applicationError);
         throw applicationError;
       }
-      console.info("[StudentApplication] Application transaction completed", applicationResult);
+      console.info("[MemberApplication] Application transaction completed", applicationResult);
 
-<<<<<<< HEAD:pages/MemberApplication.tsx
-      createdApplicationId = applicationData.id;
-
-      // 4) Create student details row
-      const { error: studentError } = await supabase
-        .from("student_details")
-        .insert([
-          {
-            application_id: createdApplicationId,
-            full_name: formData.fullName,
-            email: formData.email,
-            phone: formData.phone,
-            institution: formData.institution,
-            date_of_birth: formData.dob,
-            cnic: formData.cnic,
-            major_or_title: formData.majorOrTitle,
-            cert_level: formData.certLevel,
-            emergency_contact: formData.emergencyContact,
-            has_explosives_history: formData.explosivesHistory === "YES",
-            agrees_to_safety_code: formData.antiWeaponization === "YES",
-            agrees_to_legal: formData.legalAgree,
-            agrees_to_pledge: formData.pledgeAgree,
-          },
-        ]);
-
-      if (studentError) {
-        console.error("[MemberApplication] student_details insert failed", studentError);
-        throw studentError;
+      const { error: profileError } = await supabase
+        .from("community_profiles")
+        .upsert({ id: authUserId, display_name: formData.username }, { onConflict: "id" });
+      if (profileError) {
+        console.error("[MemberApplication] community profile upsert failed", profileError);
+        throw profileError;
       }
 
-      // 5) Sign out so they don't stay logged in before approval
-=======
       // Pending applicants should not remain signed in to protected member areas.
->>>>>>> 204f846 (Log in fix):pages/StudentApplication.tsx
       await supabase.auth.signOut();
       setAuthSession(null);
 
@@ -429,12 +324,27 @@ const MemberApplication: React.FC = () => {
 
                 <div>
                   <label className={formLabelClass}>
-                    Phone Number (optional)
+                    CNIC / B-Form Number
+                  </label>
+                  <input
+                    name="cnic"
+                    placeholder="cnic"
+                    className={inputBase}
+                    required
+                    value={formData.cnic}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div>
+                  <label className={formLabelClass}>
+                    Phone Number
                   </label>
                   <input
                     name="phone"
                     placeholder="phone"
                     className={inputBase}
+                    required
                     value={formData.phone}
                     onChange={handleChange}
                   />
@@ -479,6 +389,77 @@ const MemberApplication: React.FC = () => {
                     className={inputBase}
                     required
                     value={formData.email}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-4 text-lg font-bold tracking-[-0.03em] text-white">
+                Academic / Professional Details
+              </h2>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className={formLabelClass}>
+                    Institution / Company
+                  </label>
+                  <input
+                    name="institution"
+                    placeholder="institution"
+                    className={inputBase}
+                    required
+                    value={formData.institution}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div>
+                  <label className={formLabelClass}>
+                    Major / Job Title
+                  </label>
+                  <input
+                    name="majorOrTitle"
+                    placeholder="title"
+                    className={inputBase}
+                    required
+                    value={formData.majorOrTitle}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                <div>
+                  <label className={formLabelClass}>
+                    Current Certification Level
+                  </label>
+                  <select
+                    name="certLevel"
+                    className={inputBase}
+                    required
+                    value={formData.certLevel}
+                    onChange={handleChange}
+                  >
+                    <option value="" disabled>
+                      Select level
+                    </option>
+                    <option value="NONE">None</option>
+                    <option value="LEVEL_1">Level 1</option>
+                    <option value="LEVEL_2">Level 2</option>
+                    <option value="LEVEL_3">Level 3</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className={formLabelClass}>
+                    Emergency Contact (Name &amp; Relation)
+                  </label>
+                  <input
+                    name="emergencyContact"
+                    placeholder="e.g., Ahmad (Brother)"
+                    className={inputBase}
+                    required
+                    value={formData.emergencyContact}
                     onChange={handleChange}
                   />
                 </div>
