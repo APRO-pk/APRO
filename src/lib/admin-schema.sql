@@ -52,3 +52,15 @@ DROP POLICY IF EXISTS "admins_delete_restrictions" ON member_restrictions;
 CREATE POLICY "admins_delete_restrictions" ON member_restrictions FOR DELETE TO authenticated USING (
   auth.uid() IN (SELECT auth_id FROM admins)
 );
+
+-- 3. Admin accounts (admins table created manually: id BIGINT, username TEXT, auth_id UUID)
+-- Existing admins can read the admin list and promote members to admin.
+DROP POLICY IF EXISTS "admins_read_admins" ON admins;
+CREATE POLICY "admins_read_admins" ON admins FOR SELECT TO authenticated USING (
+  auth.uid() IN (SELECT auth_id FROM admins)
+);
+
+DROP POLICY IF EXISTS "admins_insert_admins" ON admins;
+CREATE POLICY "admins_insert_admins" ON admins FOR INSERT TO authenticated WITH CHECK (
+  auth.uid() IN (SELECT auth_id FROM admins)
+);
