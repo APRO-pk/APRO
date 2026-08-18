@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, Shield, Target, FileText, MessageSquare, Calendar,
@@ -262,12 +263,12 @@ const MembersSection: React.FC<{ admin: AdminUser | null }> = ({ admin }) => {
   const loadMembers = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      let queryBuilder = supabase.from('community_profiles')
-        .select('id, display_name, avatar_url, bio, created_at')
-        .order('display_name', { ascending: true });
-      if (q.trim()) queryBuilder = queryBuilder.ilike('display_name', `%${q}%`).limit(50);
+      let queryBuilder = supabase.from('members')
+        .select('id, full_name, email, phone, member_type, account_status, created_at, auth_user_id')
+        .order('full_name', { ascending: true });
+      if (q.trim()) queryBuilder = queryBuilder.ilike('full_name', `%${q}%`).limit(50);
       const { data } = await queryBuilder;
-      setMembers(data || []);
+      setMembers((data || []).map(m => ({ ...m, id: m.auth_user_id || m.id })));
     } finally { setLoading(false); }
   }, []);
 
@@ -301,17 +302,22 @@ const MembersSection: React.FC<{ admin: AdminUser | null }> = ({ admin }) => {
 };
 
 const MemberCard: React.FC<{ member: any; isAdmin?: boolean; onClick: () => void }> = ({ member, isAdmin, onClick }) => {
-  const initial = (member.display_name?.[0] || '?').toUpperCase();
+  const initial = (member.full_name?.[0] || member.display_name?.[0] || '?').toUpperCase();
+  const status = member.account_status as string | undefined;
+  const statusColor = status === 'APPROVED' ? 'bg-green-500/12 text-green-300 border-green-400/18'
+    : status === 'PENDING' ? 'bg-yellow-500/12 text-yellow-200 border-yellow-400/18'
+    : status ? 'bg-red-500/12 text-red-200 border-red-400/18' : '';
   return (
     <button onClick={onClick} className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:bg-white/[0.06] hover:border-violet-500/20">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-500/20 text-sm font-bold text-violet-300">{initial}</div>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
-            <div className="font-semibold text-white">{member.display_name || 'Unknown'}</div>
+            <div className="font-semibold text-white">{member.full_name || member.display_name || 'Unknown'}</div>
             {isAdmin && <span className="rounded-full border border-violet-400/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-300"><Shield size={10} className="inline mr-0.5 -mt-0.5" /> Admin</span>}
+            {status && <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${statusColor}`}>{status}</span>}
           </div>
-          <div className="text-xs text-slate-500">Joined {member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}</div>
+          <div className="text-xs text-slate-500">{member.email || 'No email'}{member.created_at ? ` · Joined ${new Date(member.created_at).toLocaleDateString()}` : ''}</div>
         </div>
         <ChevronRight size={16} className="text-slate-500" />
       </div>
@@ -335,7 +341,7 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
     setPromoteMsg('');
     const { error } = await supabase.from('admins').insert({
       auth_id: member.id,
-      username: member.display_name || 'admin',
+      username: member.full_name || member.display_name || 'admin',
     });
     setPromoting(false);
     if (error) { setPromoteMsg(error.message); return; }
@@ -421,8 +427,8 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
     } finally { setSendingMsg(false); }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 py-6">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 py-6">
       <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-[28px] border border-white/10 bg-[#0c101a] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 p-6">
@@ -431,8 +437,8 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
               {(member.display_name?.[0] || '?').toUpperCase()}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">{member.display_name || 'Unknown'}</h2>
-              <p className="text-sm text-slate-400">ID: {member.id.slice(0, 8)}...</p>
+              <h2 className="text-xl font-bold text-white">{member.full_name || member.display_name || 'Unknown'}</h2>
+              <p className="text-sm text-slate-400">ID: {String(member.id).slice(0, 8)}...</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -442,7 +448,7 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
               </span>
             ) : null}
             {!isAdmin && !promoted ? (
-              <button onClick={promoteToAdmin} disabled={promoting}
+              <button onClick={promoteToAdmin} disabled={promoting || !member.auth_user_id} title={!member.auth_user_id ? 'This member has no linked account yet' : undefined}
                 className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-300 hover:bg-violet-500/20 disabled:opacity-50 transition">
                 <Shield size={12} /> {promoting ? 'Promoting...' : 'Make Admin'}
               </button>
@@ -618,6 +624,7 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
         </div>
       </div>
     </div>
+    , document.body
   );
 };
 
