@@ -250,22 +250,29 @@ const QuickCard: React.FC<{ to: string; label: string }> = ({ to, label }) => (
 const MembersSection: React.FC<{ admin: AdminUser | null }> = ({ admin }) => {
   const [query, setQuery] = useState('');
   const [members, setMembers] = useState<any[]>([]);
+  const [adminIds, setAdminIds] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
-  const search = useCallback(async (q: string) => {
-    if (!q.trim()) { setMembers([]); return; }
+  const fetchAdmins = useCallback(async () => {
+    const { data } = await supabase.from('admins').select('auth_id');
+    if (data) setAdminIds(new Set((data as { auth_id: string }[]).map(a => a.auth_id)));
+  }, []);
+
+  const loadMembers = useCallback(async (q: string) => {
     setLoading(true);
     try {
-      const { data: profiles } = await supabase.from('community_profiles')
+      let queryBuilder = supabase.from('community_profiles')
         .select('id, display_name, avatar_url, bio, created_at')
-        .ilike('display_name', `%${q}%`)
-        .limit(20);
-      setMembers(profiles || []);
+        .order('display_name', { ascending: true });
+      if (q.trim()) queryBuilder = queryBuilder.ilike('display_name', `%${q}%`).limit(50);
+      const { data } = await queryBuilder;
+      setMembers(data || []);
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { const t = setTimeout(() => search(query), 300); return () => clearTimeout(t); }, [query, search]);
+  useEffect(() => { fetchAdmins(); }, [fetchAdmins]);
+  useEffect(() => { const t = setTimeout(() => loadMembers(query), query.trim() ? 300 : 0); return () => clearTimeout(t); }, [query, loadMembers]);
 
   return (
     <div>
@@ -282,26 +289,28 @@ const MembersSection: React.FC<{ admin: AdminUser | null }> = ({ admin }) => {
         </div>
       </div>
 
-      {loading ? <SurfacePanel className="p-4 text-sm text-slate-400">Searching...</SurfacePanel> :
-       members.length === 0 && query ? <SurfacePanel className="p-4 text-sm text-slate-400">No members found.</SurfacePanel> :
-       members.length === 0 ? <SurfacePanel className="p-4 text-sm text-slate-400">Search for a member by username to get started.</SurfacePanel> :
+      {loading ? <SurfacePanel className="p-4 text-sm text-slate-400">Loading members...</SurfacePanel> :
+       members.length === 0 ? <SurfacePanel className="p-4 text-sm text-slate-400">{query ? 'No members found.' : 'No members yet.'}</SurfacePanel> :
        <div className="space-y-3">
-         {members.map(m => <MemberCard key={m.id} member={m} onClick={() => setSelectedMember(m)} />)}
+         {members.map(m => <MemberCard key={m.id} member={m} isAdmin={adminIds.has(m.id)} onClick={() => setSelectedMember(m)} />)}
        </div>}
 
-      {selectedMember && <MemberDetailModal member={selectedMember} admin={admin} onClose={() => { setSelectedMember(null); search(query); }} />}
+      {selectedMember && <MemberDetailModal member={selectedMember} admin={admin} isAdmin={adminIds.has(selectedMember.id)} onPromoted={fetchAdmins} onClose={() => { setSelectedMember(null); loadMembers(query); }} />}
     </div>
   );
 };
 
-const MemberCard: React.FC<{ member: any; onClick: () => void }> = ({ member, onClick }) => {
+const MemberCard: React.FC<{ member: any; isAdmin?: boolean; onClick: () => void }> = ({ member, isAdmin, onClick }) => {
   const initial = (member.display_name?.[0] || '?').toUpperCase();
   return (
     <button onClick={onClick} className="w-full rounded-xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:bg-white/[0.06] hover:border-violet-500/20">
       <div className="flex items-center gap-4">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-violet-500/20 text-sm font-bold text-violet-300">{initial}</div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-white">{member.display_name || 'Unknown'}</div>
+          <div className="flex items-center gap-2">
+            <div className="font-semibold text-white">{member.display_name || 'Unknown'}</div>
+            {isAdmin && <span className="rounded-full border border-violet-400/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-bold text-violet-300"><Shield size={10} className="inline mr-0.5 -mt-0.5" /> Admin</span>}
+          </div>
           <div className="text-xs text-slate-500">Joined {member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}</div>
         </div>
         <ChevronRight size={16} className="text-slate-500" />
@@ -311,12 +320,29 @@ const MemberCard: React.FC<{ member: any; onClick: () => void }> = ({ member, on
 };
 
 /* ─── MEMBER DETAIL MODAL ─── */
-const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; onClose: () => void }> = ({ member, admin, onClose }) => {
+const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmin?: boolean; onPromoted?: () => void; onClose: () => void }> = ({ member, admin, isAdmin, onPromoted, onClose }) => {
   const [ban, setBan] = useState<MemberBan | null>(null);
   const [restrictions, setRestrictions] = useState<MemberRestriction[]>([]);
   const [activity, setActivity] = useState<MemberActivity[]>([]);
   const [membership, setMembership] = useState<{ membership_class: string; community_tokens: number; tokens_reset_at: string } | null>(null);
   const [banForm, setBanForm] = useState({ show: false, reason: '', isPermanent: true, hours: '24' });
+  const [promoting, setPromoting] = useState(false);
+  const [promoted, setPromoted] = useState(false);
+  const [promoteMsg, setPromoteMsg] = useState('');
+
+  const promoteToAdmin = async () => {
+    setPromoting(true);
+    setPromoteMsg('');
+    const { error } = await supabase.from('admins').insert({
+      auth_id: member.id,
+      username: member.display_name || 'admin',
+    });
+    setPromoting(false);
+    if (error) { setPromoteMsg(error.message); return; }
+    setPromoted(true);
+    setPromoteMsg('Member promoted to admin.');
+    onPromoted?.();
+  };
   const [tokenEdit, setTokenEdit] = useState({ show: false, value: 0 });
   const [savingTokens, setSavingTokens] = useState(false);
   const [tokenMsg, setTokenMsg] = useState('');
@@ -415,6 +441,17 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; onClos
                 <Ban size={12} /> Banned{ban.is_permanent ? '' : ` (${ban.expires_at ? Math.ceil((new Date(ban.expires_at).getTime() - Date.now()) / 3600000) : '?'}h)`}
               </span>
             ) : null}
+            {!isAdmin && !promoted ? (
+              <button onClick={promoteToAdmin} disabled={promoting}
+                className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-300 hover:bg-violet-500/20 disabled:opacity-50 transition">
+                <Shield size={12} /> {promoting ? 'Promoting...' : 'Make Admin'}
+              </button>
+            ) : null}
+            {isAdmin && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/20 bg-violet-500/10 px-3 py-1.5 text-xs font-bold text-violet-300">
+                <Shield size={12} /> Admin
+              </span>
+            )}
             <button onClick={onClose} className="text-sm font-semibold text-slate-400 hover:text-white">Close</button>
           </div>
         </div>
@@ -435,6 +472,11 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; onClos
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'info' && (
             <div className="space-y-6">
+              {promoteMsg && (
+                <div className={`rounded-xl border px-4 py-3 text-sm ${promoteMsg === 'Member promoted to admin.' ? 'border-green-400/20 bg-green-400/10 text-green-300' : 'border-red-400/20 bg-red-400/10 text-red-200'}`}>
+                  {promoteMsg}
+                </div>
+              )}
               {/* Ban Controls */}
               <SurfacePanel className="p-4">
                 <h4 className="text-sm font-bold text-white mb-3">Account Status</h4>
