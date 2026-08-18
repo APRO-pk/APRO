@@ -255,7 +255,7 @@ const MembersSection: React.FC<{ admin: AdminUser | null }> = ({ admin }) => {
   const [selectedMember, setSelectedMember] = useState<any>(null);
 
   const fetchAdmins = useCallback(async () => {
-    const { data } = await supabase.from('admins').select('auth_id');
+    const { data } = await supabase.rpc('admin_auth_ids');
     if (data) setAdminIds(new Set((data as { auth_id: string }[]).map(a => a.auth_id)));
   }, []);
 

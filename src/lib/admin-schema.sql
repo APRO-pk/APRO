@@ -54,13 +54,34 @@ CREATE POLICY "admins_delete_restrictions" ON member_restrictions FOR DELETE TO 
 );
 
 -- 3. Admin accounts (admins table created manually: id BIGINT, username TEXT, auth_id UUID)
--- Existing admins can read the admin list and promote members to admin.
-DROP POLICY IF EXISTS "admins_read_admins" ON admins;
-CREATE POLICY "admins_read_admins" ON admins FOR SELECT TO authenticated USING (
-  auth.uid() IN (SELECT auth_id FROM admins)
-);
+-- NOTE: admins has its own RLS policies ("Admins can read their own admin record",
+-- "admins_select_own_row") so a query on admins only ever returns the caller's own row.
+-- Avoid self-referential policies here (auth.uid() IN (SELECT auth_id FROM admins)
+-- causes infinite recursion). Use the SECURITY DEFINER helpers below instead.
 
+-- is_admin(): true when the current user is an admin (no RLS recursion)
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (SELECT 1 FROM admins WHERE auth_id = auth.uid());
+$$;
+
+-- admin_auth_ids(): all admin auth ids, empty for non-admins (used for admin badges)
+CREATE OR REPLACE FUNCTION admin_auth_ids()
+RETURNS TABLE (auth_id UUID)
+LANGUAGE sql
+SECURITY DEFINER
+AS $$
+  SELECT a.auth_id FROM admins a WHERE EXISTS (SELECT 1 FROM admins b WHERE b.auth_id = auth.uid());
+$$;
+
+REVOKE ALL ON FUNCTION is_admin() FROM PUBLIC;
+REVOKE ALL ON FUNCTION admin_auth_ids() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION is_admin() TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_auth_ids() TO authenticated;
+
+-- Existing admins can promote members to admin (checked via is_admin())
 DROP POLICY IF EXISTS "admins_insert_admins" ON admins;
-CREATE POLICY "admins_insert_admins" ON admins FOR INSERT TO authenticated WITH CHECK (
-  auth.uid() IN (SELECT auth_id FROM admins)
-);
+CREATE POLICY "admins_insert_admins" ON admins FOR INSERT TO authenticated WITH CHECK (is_admin());
