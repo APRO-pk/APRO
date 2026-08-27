@@ -531,15 +531,15 @@ const AproWorks: React.FC = () => {
           </p>
             <div className="mt-8 flex flex-wrap justify-center gap-4">
               {user ? (
-				<button
-					onClick={() => {
-						window.location.href = "https://zljhwosvsdqvgcgusqct.supabase.co/storage/v1/object/public/apro-products/apro-works/APRO%20Works_0.1.12_x64-setup.exe";
-					}}
-					className="inline-flex items-center gap-3 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.26),0_18px_28px_rgba(61,28,120,0.28)] transition duration-300 hover:-translate-y-0.5">
+				<a
+					href="https://zljhwosvsdqvgcgusqct.supabase.co/storage/v1/object/public/apro-products/apro-works/APRO%20Works_0.1.12_x64-setup.exe"
+					download
+					className="inline-flex items-center gap-3 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.26),0_18px_28px_rgba(61,28,120,0.28)] transition duration-300 hover:-translate-y-0.5"
+					>
 					<Download size={18} />
 					Download for Windows
 					<ArrowRight className="h-4 w-4" />
-				</button>
+					</a>
                 //<button onClick={() => setBetaPopupOpen(true)}
                   //className="inline-flex items-center gap-3 rounded-full border border-violet-200/24 bg-[linear-gradient(180deg,#9879ff,#7b2cbf)] px-8 py-4 text-sm font-bold uppercase tracking-[0.16em] text-white shadow-[inset_1px_1px_0_rgba(255,255,255,0.26),0_18px_28px_rgba(61,28,120,0.28)] transition duration-300 hover:-translate-y-0.5">
                   //<Download size={18} /> Download for Windows
