@@ -115,7 +115,14 @@ const MemberApplication: React.FC = () => {
   const ensureAuthenticatedSession = async () => {
     const currentSession = authSession ?? (await supabase.auth.getSession()).data.session;
     if (currentSession) {
-      return currentSession;
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (!userError && userData.user?.id === currentSession.user.id) {
+        return currentSession;
+      }
+
+      console.warn("[MemberApplication] Discarding a stale local auth session", userError);
+      await supabase.auth.signOut({ scope: "local" });
+      setAuthSession(null);
     }
 
     const signInToExistingAccount = async () => {
@@ -222,6 +229,7 @@ const MemberApplication: React.FC = () => {
 
       const applicationPayload = {
         full_name: formData.fullName,
+        display_name: formData.username,
         email: formData.email.trim(),
         phone: formData.phone,
         date_of_birth: formData.dob,
@@ -242,14 +250,6 @@ const MemberApplication: React.FC = () => {
         throw applicationError;
       }
       console.info("[MemberApplication] Application transaction completed", applicationResult);
-
-      const { error: profileError } = await supabase
-        .from("community_profiles")
-        .upsert({ id: authUserId, display_name: formData.username }, { onConflict: "id" });
-      if (profileError) {
-        console.error("[MemberApplication] community profile upsert failed", profileError);
-        throw profileError;
-      }
 
       // Pending applicants should not remain signed in to protected member areas.
       await supabase.auth.signOut();
