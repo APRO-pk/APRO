@@ -202,7 +202,6 @@ const AproWorks: React.FC = () => {
               </h1>
               <div className="mt-8 flex flex-wrap items-center gap-4">
                 {user ? (
-                  {user ? (
 					<a
 						href="https://zljhwosvsdqvgcgusqct.supabase.co/storage/v1/object/public/apro-products/apro-works/APRO%20Works_0.1.12_x64-setup.exe"
 						download
