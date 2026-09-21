@@ -6,7 +6,7 @@ import {
   Search, X, Ban, CheckCircle, Clock, Mail, Activity, ChevronRight,
   Wifi, WifiOff, UserX, UserCheck, MoreHorizontal, LogOut, ExternalLink,
   RefreshCw, MessageCircle, Repeat2, Eye, Flag, AlertTriangle, Award, Plus, Trash2, Save, Edit3, Upload,
-  ListChecks, Download, Loader2,
+  ListChecks, Download, Loader2, Lock, Unlock,
 } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { getCachedDisplayName } from "../src/lib/community-api";
@@ -27,6 +27,14 @@ type NavSection = 'overview' | 'members' | 'crews' | 'missions' | 'certification
 const APPLICATION_TYPES = { STUDENT: "STUDENT", CHAPTER: "CHAPTER" };
 const STATUS = { PENDING: "PENDING" };
 const RESTRICTION_TYPES = ['post', 'comment', 'vote', 'create_crew', 'join_crew', 'create_mission'] as const;
+const APRO_WORKS_PRODUCTS = [
+  { slug: 'burn-geometry-modeler', name: 'Burn & Geometry Modeler', category: 'Solid motors' },
+  { slug: 'mesh', name: 'Mesh', category: 'Mesh generation' },
+  { slug: 'Propulsor - Liquid Engine Design Studio', name: 'Propulsor', category: 'Liquid engines' },
+  { slug: 'hexadof', name: 'HexaDOF', category: 'Flight dynamics' },
+  { slug: 'rocketforge', name: 'RocketForge', category: 'Launch systems' },
+  { slug: 'recovery-system-designer', name: 'Recovery System Designer', category: 'Recovery systems' },
+] as const;
 
 const NAV_ITEMS: { id: NavSection; label: string; icon: React.FC<{ size?: number }> }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -352,7 +360,11 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
   const [tokenEdit, setTokenEdit] = useState({ show: false, value: 0 });
   const [savingTokens, setSavingTokens] = useState(false);
   const [tokenMsg, setTokenMsg] = useState('');
-  const [activeTab, setActiveTab] = useState<'info' | 'activity' | 'message'>('info');
+  const [activeTab, setActiveTab] = useState<'info' | 'apps' | 'activity' | 'message'>('info');
+  const [productLocks, setProductLocks] = useState<Set<string>>(new Set());
+  const [loadingProductLocks, setLoadingProductLocks] = useState(false);
+  const [savingProductSlug, setSavingProductSlug] = useState<string | null>(null);
+  const [productLockError, setProductLockError] = useState('');
   const [messageText, setMessageText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [msgSent, setMsgSent] = useState(false);
@@ -376,6 +388,36 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
       setActivity(acts);
     });
   }, [member.id]);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProductLocks = async () => {
+      if (!member.auth_user_id) {
+        setProductLocks(new Set());
+        return;
+      }
+
+      setLoadingProductLocks(true);
+      setProductLockError('');
+      const { data, error } = await supabase.rpc('admin_get_member_product_locks', {
+        p_user_id: member.auth_user_id,
+      });
+
+      if (!active) return;
+
+      if (error) {
+        setProductLockError(error.message);
+      } else {
+        const rows = (data || []) as { product_slug: string }[];
+        setProductLocks(new Set(rows.map(row => row.product_slug)));
+      }
+      setLoadingProductLocks(false);
+    };
+
+    void loadProductLocks();
+    return () => { active = false; };
+  }, [member.auth_user_id]);
 
   const handleBan = async () => {
     if (!banForm.reason.trim()) return;
@@ -410,6 +452,33 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
     if (error) { setTokenMsg('Failed to update tokens.'); } else { setTokenMsg('Tokens updated.'); setMembership(prev => prev ? { ...prev, community_tokens: tokenEdit.value } : prev); }
     setSavingTokens(false);
     setTimeout(() => setTokenMsg(''), 3000);
+  };
+
+  const toggleProductLock = async (productSlug: string) => {
+    if (!member.auth_user_id || savingProductSlug) return;
+
+    const shouldLock = !productLocks.has(productSlug);
+    setSavingProductSlug(productSlug);
+    setProductLockError('');
+
+    const { error } = await supabase.rpc('admin_set_member_product_lock', {
+      p_user_id: member.auth_user_id,
+      p_product_slug: productSlug,
+      p_locked: shouldLock,
+    });
+
+    if (error) {
+      setProductLockError(error.message);
+    } else {
+      setProductLocks(current => {
+        const next = new Set(current);
+        if (shouldLock) next.add(productSlug);
+        else next.delete(productSlug);
+        return next;
+      });
+    }
+
+    setSavingProductSlug(null);
   };
 
   const sendAdminMessage = async () => {
@@ -464,13 +533,13 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
 
         {/* Tabs */}
         <div className="flex border-b border-white/10 px-6">
-          {(['info', 'activity', 'message'] as const).map(tab => (
+          {(['info', 'apps', 'activity', 'message'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${
                 activeTab === tab ? 'border-violet-400 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'
               }`}
             >
-              {tab === 'info' ? 'Info & Restrictions' : tab === 'activity' ? 'Activity' : 'Message'}
+              {tab === 'info' ? 'Info & Restrictions' : tab === 'apps' ? 'App Access' : tab === 'activity' ? 'Activity' : 'Message'}
             </button>
           ))}
         </div>
@@ -583,6 +652,67 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
                   })}
                 </div>
               </SurfacePanel>
+            </div>
+          )}
+
+          {activeTab === 'apps' && (
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-white">APRO Works app access</h3>
+                <p className="mt-1 text-sm text-slate-400">
+                  Lock or unlock individual apps for this member. Apps are unlocked by default.
+                </p>
+              </div>
+
+              {!member.auth_user_id ? (
+                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
+                  This member does not have a linked login account yet, so app access cannot be assigned.
+                </div>
+              ) : null}
+
+              {productLockError ? (
+                <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                  {productLockError}
+                </div>
+              ) : null}
+
+              {loadingProductLocks ? (
+                <SurfacePanel className="p-4 text-sm text-slate-400">Loading app access...</SurfacePanel>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {APRO_WORKS_PRODUCTS.map(product => {
+                    const locked = productLocks.has(product.slug);
+                    const saving = savingProductSlug === product.slug;
+                    return (
+                      <SurfacePanel key={product.slug} className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-white">{product.name}</div>
+                            <div className="mt-0.5 text-xs text-slate-500">{product.category}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void toggleProductLock(product.slug)}
+                            disabled={!member.auth_user_id || Boolean(savingProductSlug)}
+                            className={`inline-flex min-w-[104px] items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              locked
+                                ? 'border-red-400/25 bg-red-400/10 text-red-200 hover:bg-red-400/15'
+                                : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15'
+                            }`}
+                          >
+                            {saving ? <Loader2 size={14} className="animate-spin" /> : locked ? <Lock size={14} /> : <Unlock size={14} />}
+                            {saving ? 'Saving...' : locked ? 'Locked' : 'Unlocked'}
+                          </button>
+                        </div>
+                      </SurfacePanel>
+                    );
+                  })}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500">
+                APRO Works refreshes access while it is running and always checks again when the member signs in.
+              </p>
             </div>
           )}
 
