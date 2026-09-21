@@ -6,7 +6,7 @@ import {
   Search, X, Ban, CheckCircle, Clock, Mail, Activity, ChevronRight,
   Wifi, WifiOff, UserX, UserCheck, MoreHorizontal, LogOut, ExternalLink,
   RefreshCw, MessageCircle, Repeat2, Eye, Flag, AlertTriangle, Award, Plus, Trash2, Save, Edit3, Upload,
-  ListChecks, Download, Loader2, Lock, Unlock,
+  ListChecks, Download, Loader2, Lock, Unlock, KeyRound,
 } from "lucide-react";
 import { supabase } from "../src/lib/supabase";
 import { getCachedDisplayName } from "../src/lib/community-api";
@@ -22,7 +22,7 @@ type MemberActivity = { type: 'post' | 'comment'; content: string; created_at: s
 type Crew = { id: string; name: string; description: string; level: number; status: string; prime_id: string; member_count?: number; created_at: string };
 type Project = { id: string; title: string; visibility: string; owner_id: string; crew_id: string | null; created_at: string };
 
-type NavSection = 'overview' | 'members' | 'crews' | 'missions' | 'certifications';
+type NavSection = 'overview' | 'members' | 'app-access' | 'crews' | 'missions' | 'certifications';
 
 const APPLICATION_TYPES = { STUDENT: "STUDENT", CHAPTER: "CHAPTER" };
 const STATUS = { PENDING: "PENDING" };
@@ -39,6 +39,7 @@ const APRO_WORKS_PRODUCTS = [
 const NAV_ITEMS: { id: NavSection; label: string; icon: React.FC<{ size?: number }> }[] = [
   { id: 'overview', label: 'Overview', icon: LayoutDashboard },
   { id: 'members', label: 'Members', icon: Users },
+  { id: 'app-access', label: 'App Access', icon: KeyRound },
   { id: 'crews', label: 'Crews', icon: Shield },
   { id: 'missions', label: 'Missions', icon: Target },
   { id: 'certifications', label: 'Certifications', icon: Award },
@@ -137,6 +138,7 @@ const AdminDashboard: React.FC = () => {
         <main className="min-h-[calc(100vh-73px)] flex-1 py-6 pl-0 lg:pl-6 pb-20 lg:pb-6">
           {navSection === 'overview' && <OverviewSection admin={admin} />}
           {navSection === 'members' && <MembersSection admin={admin} />}
+          {navSection === 'app-access' && <AppAccessSection />}
           {navSection === 'crews' && <CrewsSection admin={admin} />}
           {navSection === 'missions' && <MissionsSection admin={admin} />}
           {navSection === 'certifications' && <CertificationsSection admin={admin} />}
@@ -333,6 +335,217 @@ const MemberCard: React.FC<{ member: any; isAdmin?: boolean; onClick: () => void
   );
 };
 
+/* ─── APP ACCESS SECTION ─── */
+const AppAccessSection: React.FC = () => {
+  const [members, setMembers] = useState<any[]>([]);
+  const [selectedMember, setSelectedMember] = useState<any>(null);
+  const [query, setQuery] = useState('');
+  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [productLocks, setProductLocks] = useState<Set<string>>(new Set());
+  const [loadingProductLocks, setLoadingProductLocks] = useState(false);
+  const [savingProductSlug, setSavingProductSlug] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    let active = true;
+
+    const loadMembers = async () => {
+      setLoadingMembers(true);
+      const { data, error } = await supabase
+        .from('members')
+        .select('id, full_name, email, account_status, auth_user_id')
+        .not('auth_user_id', 'is', null)
+        .order('full_name', { ascending: true });
+
+      if (!active) return;
+      if (error) {
+        setErrorMessage(error.message);
+      } else {
+        const linkedMembers = data || [];
+        setMembers(linkedMembers);
+        setSelectedMember(current => current || linkedMembers[0] || null);
+      }
+      setLoadingMembers(false);
+    };
+
+    void loadMembers();
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    const loadProductLocks = async () => {
+      if (!selectedMember?.auth_user_id) {
+        setProductLocks(new Set());
+        return;
+      }
+
+      setLoadingProductLocks(true);
+      setErrorMessage('');
+      const { data, error } = await supabase.rpc('admin_get_member_product_locks', {
+        p_user_id: selectedMember.auth_user_id,
+      });
+
+      if (!active) return;
+      if (error) {
+        setErrorMessage(error.message);
+        setProductLocks(new Set());
+      } else {
+        const rows = (data || []) as { product_slug: string }[];
+        setProductLocks(new Set(rows.map(row => row.product_slug)));
+      }
+      setLoadingProductLocks(false);
+    };
+
+    void loadProductLocks();
+    return () => { active = false; };
+  }, [selectedMember?.auth_user_id]);
+
+  const toggleProductLock = async (productSlug: string) => {
+    if (!selectedMember?.auth_user_id || savingProductSlug) return;
+
+    const shouldLock = !productLocks.has(productSlug);
+    setSavingProductSlug(productSlug);
+    setErrorMessage('');
+    const { error } = await supabase.rpc('admin_set_member_product_lock', {
+      p_user_id: selectedMember.auth_user_id,
+      p_product_slug: productSlug,
+      p_locked: shouldLock,
+    });
+
+    if (error) {
+      setErrorMessage(error.message);
+    } else {
+      setProductLocks(current => {
+        const next = new Set(current);
+        if (shouldLock) next.add(productSlug);
+        else next.delete(productSlug);
+        return next;
+      });
+    }
+    setSavingProductSlug(null);
+  };
+
+  const normalizedQuery = query.trim().toLowerCase();
+  const filteredMembers = members.filter(member =>
+    !normalizedQuery
+    || member.full_name?.toLowerCase().includes(normalizedQuery)
+    || member.email?.toLowerCase().includes(normalizedQuery)
+  );
+  const availableCount = APRO_WORKS_PRODUCTS.length - productLocks.size;
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-white">App Access</h1>
+        <p className="mt-1 text-sm text-slate-400">Choose which APRO Works apps each registered user can install and launch.</p>
+      </div>
+
+      {errorMessage && (
+        <div className="mb-4 rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">{errorMessage}</div>
+      )}
+
+      <div className="grid gap-6 xl:grid-cols-[340px_minmax(0,1fr)]">
+        <SurfacePanel className="overflow-hidden">
+          <div className="border-b border-white/10 p-4">
+            <div className="relative">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+              <input
+                value={query}
+                onChange={event => setQuery(event.target.value)}
+                placeholder="Search registered users..."
+                className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-10 text-sm text-white placeholder:text-slate-500 outline-none transition focus:border-violet-500/30"
+              />
+              {query && <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"><X size={16} /></button>}
+            </div>
+          </div>
+
+          <div className="max-h-[620px] overflow-y-auto p-2">
+            {loadingMembers ? (
+              <div className="p-4 text-sm text-slate-400">Loading registered users...</div>
+            ) : filteredMembers.length === 0 ? (
+              <div className="p-4 text-sm text-slate-400">No linked users found.</div>
+            ) : filteredMembers.map(member => {
+              const selected = selectedMember?.auth_user_id === member.auth_user_id;
+              return (
+                <button
+                  key={member.auth_user_id}
+                  type="button"
+                  onClick={() => setSelectedMember(member)}
+                  className={`mb-1 flex w-full items-center gap-3 rounded-xl border px-3 py-3 text-left transition ${selected ? 'border-violet-400/25 bg-violet-500/10' : 'border-transparent hover:border-white/10 hover:bg-white/[0.04]'}`}
+                >
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-violet-500/20 text-sm font-bold text-violet-300">
+                    {(member.full_name?.[0] || member.email?.[0] || '?').toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-white">{member.full_name || 'Unnamed member'}</div>
+                    <div className="truncate text-xs text-slate-500">{member.email || 'No email'}</div>
+                  </div>
+                  <ChevronRight size={15} className={selected ? 'text-violet-300' : 'text-slate-600'} />
+                </button>
+              );
+            })}
+          </div>
+        </SurfacePanel>
+
+        <div>
+          {!selectedMember ? (
+            <SurfacePanel className="p-8 text-center text-sm text-slate-400">Select a registered user to manage app access.</SurfacePanel>
+          ) : (
+            <>
+              <SurfacePanel className="mb-4 p-5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">{selectedMember.full_name || 'Unnamed member'}</h2>
+                    <p className="text-sm text-slate-400">{selectedMember.email || 'No email address'}</p>
+                  </div>
+                  <div className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-200">
+                    {availableCount} of {APRO_WORKS_PRODUCTS.length} apps available
+                  </div>
+                </div>
+              </SurfacePanel>
+
+              {loadingProductLocks ? (
+                <SurfacePanel className="p-5 text-sm text-slate-400">Loading app access...</SurfacePanel>
+              ) : (
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {APRO_WORKS_PRODUCTS.map(product => {
+                    const locked = productLocks.has(product.slug);
+                    const saving = savingProductSlug === product.slug;
+                    return (
+                      <SurfacePanel key={product.slug} className="p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0">
+                            <div className="font-semibold text-white">{product.name}</div>
+                            <div className="mt-0.5 text-xs text-slate-500">{product.category}</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => void toggleProductLock(product.slug)}
+                            disabled={Boolean(savingProductSlug)}
+                            title={locked ? 'Give this user access' : 'Remove this user’s access'}
+                            className={`inline-flex min-w-[116px] items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${locked ? 'border-red-400/25 bg-red-400/10 text-red-200 hover:bg-red-400/15' : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15'}`}
+                          >
+                            {saving ? <Loader2 size={14} className="animate-spin" /> : locked ? <Lock size={14} /> : <Unlock size={14} />}
+                            {saving ? 'Saving...' : locked ? 'Locked' : 'Access given'}
+                          </button>
+                        </div>
+                      </SurfacePanel>
+                    );
+                  })}
+                </div>
+              )}
+
+              <p className="mt-4 text-xs text-slate-500">Changes are stored immediately. APRO Works refreshes access while running and checks again before install, update, or launch.</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ─── MEMBER DETAIL MODAL ─── */
 const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmin?: boolean; onPromoted?: () => void; onClose: () => void }> = ({ member, admin, isAdmin, onPromoted, onClose }) => {
   const [ban, setBan] = useState<MemberBan | null>(null);
@@ -360,11 +573,7 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
   const [tokenEdit, setTokenEdit] = useState({ show: false, value: 0 });
   const [savingTokens, setSavingTokens] = useState(false);
   const [tokenMsg, setTokenMsg] = useState('');
-  const [activeTab, setActiveTab] = useState<'info' | 'apps' | 'activity' | 'message'>('info');
-  const [productLocks, setProductLocks] = useState<Set<string>>(new Set());
-  const [loadingProductLocks, setLoadingProductLocks] = useState(false);
-  const [savingProductSlug, setSavingProductSlug] = useState<string | null>(null);
-  const [productLockError, setProductLockError] = useState('');
+  const [activeTab, setActiveTab] = useState<'info' | 'activity' | 'message'>('info');
   const [messageText, setMessageText] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
   const [msgSent, setMsgSent] = useState(false);
@@ -388,36 +597,6 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
       setActivity(acts);
     });
   }, [member.id]);
-
-  useEffect(() => {
-    let active = true;
-
-    const loadProductLocks = async () => {
-      if (!member.auth_user_id) {
-        setProductLocks(new Set());
-        return;
-      }
-
-      setLoadingProductLocks(true);
-      setProductLockError('');
-      const { data, error } = await supabase.rpc('admin_get_member_product_locks', {
-        p_user_id: member.auth_user_id,
-      });
-
-      if (!active) return;
-
-      if (error) {
-        setProductLockError(error.message);
-      } else {
-        const rows = (data || []) as { product_slug: string }[];
-        setProductLocks(new Set(rows.map(row => row.product_slug)));
-      }
-      setLoadingProductLocks(false);
-    };
-
-    void loadProductLocks();
-    return () => { active = false; };
-  }, [member.auth_user_id]);
 
   const handleBan = async () => {
     if (!banForm.reason.trim()) return;
@@ -452,33 +631,6 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
     if (error) { setTokenMsg('Failed to update tokens.'); } else { setTokenMsg('Tokens updated.'); setMembership(prev => prev ? { ...prev, community_tokens: tokenEdit.value } : prev); }
     setSavingTokens(false);
     setTimeout(() => setTokenMsg(''), 3000);
-  };
-
-  const toggleProductLock = async (productSlug: string) => {
-    if (!member.auth_user_id || savingProductSlug) return;
-
-    const shouldLock = !productLocks.has(productSlug);
-    setSavingProductSlug(productSlug);
-    setProductLockError('');
-
-    const { error } = await supabase.rpc('admin_set_member_product_lock', {
-      p_user_id: member.auth_user_id,
-      p_product_slug: productSlug,
-      p_locked: shouldLock,
-    });
-
-    if (error) {
-      setProductLockError(error.message);
-    } else {
-      setProductLocks(current => {
-        const next = new Set(current);
-        if (shouldLock) next.add(productSlug);
-        else next.delete(productSlug);
-        return next;
-      });
-    }
-
-    setSavingProductSlug(null);
   };
 
   const sendAdminMessage = async () => {
@@ -533,13 +685,13 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
 
         {/* Tabs */}
         <div className="flex border-b border-white/10 px-6">
-          {(['info', 'apps', 'activity', 'message'] as const).map(tab => (
+          {(['info', 'activity', 'message'] as const).map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               className={`px-4 py-3 text-sm font-semibold border-b-2 transition ${
                 activeTab === tab ? 'border-violet-400 text-white' : 'border-transparent text-slate-500 hover:text-slate-300'
               }`}
             >
-              {tab === 'info' ? 'Info & Restrictions' : tab === 'apps' ? 'App Access' : tab === 'activity' ? 'Activity' : 'Message'}
+              {tab === 'info' ? 'Info & Restrictions' : tab === 'activity' ? 'Activity' : 'Message'}
             </button>
           ))}
         </div>
@@ -652,67 +804,6 @@ const MemberDetailModal: React.FC<{ member: any; admin: AdminUser | null; isAdmi
                   })}
                 </div>
               </SurfacePanel>
-            </div>
-          )}
-
-          {activeTab === 'apps' && (
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-base font-bold text-white">APRO Works app access</h3>
-                <p className="mt-1 text-sm text-slate-400">
-                  Lock or unlock individual apps for this member. Apps are unlocked by default.
-                </p>
-              </div>
-
-              {!member.auth_user_id ? (
-                <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 px-4 py-3 text-sm text-amber-200">
-                  This member does not have a linked login account yet, so app access cannot be assigned.
-                </div>
-              ) : null}
-
-              {productLockError ? (
-                <div className="rounded-xl border border-red-400/20 bg-red-400/10 px-4 py-3 text-sm text-red-200">
-                  {productLockError}
-                </div>
-              ) : null}
-
-              {loadingProductLocks ? (
-                <SurfacePanel className="p-4 text-sm text-slate-400">Loading app access...</SurfacePanel>
-              ) : (
-                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {APRO_WORKS_PRODUCTS.map(product => {
-                    const locked = productLocks.has(product.slug);
-                    const saving = savingProductSlug === product.slug;
-                    return (
-                      <SurfacePanel key={product.slug} className="p-4">
-                        <div className="flex items-center justify-between gap-4">
-                          <div className="min-w-0">
-                            <div className="font-semibold text-white">{product.name}</div>
-                            <div className="mt-0.5 text-xs text-slate-500">{product.category}</div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => void toggleProductLock(product.slug)}
-                            disabled={!member.auth_user_id || Boolean(savingProductSlug)}
-                            className={`inline-flex min-w-[104px] items-center justify-center gap-2 rounded-full border px-3 py-2 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                              locked
-                                ? 'border-red-400/25 bg-red-400/10 text-red-200 hover:bg-red-400/15'
-                                : 'border-emerald-400/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15'
-                            }`}
-                          >
-                            {saving ? <Loader2 size={14} className="animate-spin" /> : locked ? <Lock size={14} /> : <Unlock size={14} />}
-                            {saving ? 'Saving...' : locked ? 'Locked' : 'Unlocked'}
-                          </button>
-                        </div>
-                      </SurfacePanel>
-                    );
-                  })}
-                </div>
-              )}
-
-              <p className="text-xs text-slate-500">
-                APRO Works refreshes access while it is running and always checks again when the member signs in.
-              </p>
             </div>
           )}
 
